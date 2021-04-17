@@ -1,87 +1,25 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Cedar Communication Module
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2014 Daiyuu Nobori.
-// Copyright (c) 2012-2014 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2014 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE IT IN OTHER COUNTRIES. IMPORTING THIS
-// SOFTWARE INTO OTHER COUNTRIES IS AT YOUR OWN RISK. SOME COUNTRIES
-// PROHIBIT ENCRYPTED COMMUNICATIONS. USING THIS SOFTWARE IN OTHER
-// COUNTRIES MIGHT BE RESTRICTED.
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
-
+// © 2020 Nokia
 
 // Link.c
 // Inter-HUB Link
 
-#include "CedarPch.h"
+#include "Link.h"
+
+#include "Account.h"
+#include "Client.h"
+#include "Connection.h"
+#include "Hub.h"
+#include "Logging.h"
+#include "Server.h"
+#include "Session.h"
+
+#include "Mayaqua/Internat.h"
+#include "Mayaqua/Kernel.h"
+#include "Mayaqua/Memory.h"
+#include "Mayaqua/Object.h"
+#include "Mayaqua/Str.h"
 
 // Link server thread
 void LinkServerSessionThread(THREAD *t, void *param)
@@ -143,12 +81,20 @@ bool LinkPaInit(SESSION *s)
 		return false;
 	}
 
+	if (k->Halting || (*k->StopAllLinkFlag))
+	{
+		return false;
+	}
+
 	// Create a transmission packet queue
 	k->SendPacketQueue = NewQueue();
 
 	// Creat a link server thread
 	t = NewThread(LinkServerSessionThread, (void *)k);
 	WaitThreadInit(t);
+
+	k->LastServerConnectionReceivedBlocksNum = 0;
+	k->CurrentSendPacketQueueSize = 0;
 
 	ReleaseThread(t);
 
@@ -179,6 +125,10 @@ UINT LinkPaGetNextPacket(SESSION *s, void **data)
 		return INFINITE;
 	}
 
+	if (k->Halting || (*k->StopAllLinkFlag))
+	{
+		return INFINITE;
+	}
 	// Examine whether there are packets in the queue
 	LockQueue(k->SendPacketQueue);
 	{
@@ -189,6 +139,9 @@ UINT LinkPaGetNextPacket(SESSION *s, void **data)
 			// There was a packet
 			*data = block->Buf;
 			ret = block->Size;
+
+			k->CurrentSendPacketQueueSize -= block->Size;
+
 			// Discard the memory for the structure
 			Free(block);
 		}
@@ -202,32 +155,95 @@ UINT LinkPaGetNextPacket(SESSION *s, void **data)
 bool LinkPaPutPacket(SESSION *s, void *data, UINT size)
 {
 	LINK *k;
-	BLOCK *block;
+	BLOCK *block = NULL;
 	SESSION *server_session;
 	CONNECTION *server_connection;
+	bool ret = true;
+	bool halting = false;
 	// Validate arguments
 	if (s == NULL || (k = (LINK *)s->PacketAdapter->Param) == NULL)
 	{
 		return false;
 	}
 
+	halting = (k->Halting || (*k->StopAllLinkFlag));
+
 	server_session = k->ServerSession;
 	server_connection = server_session->Connection;
+
+	k->Flag1++;
+	if ((k->Flag1 % 32) == 0)
+	{
+		// Omit for performance
+		UINT current_num;
+		int diff;
+
+		current_num = GetQueueNum(server_connection->ReceivedBlocks);
+
+		diff = (int)current_num - (int)k->LastServerConnectionReceivedBlocksNum;
+
+		k->LastServerConnectionReceivedBlocksNum = current_num;
+
+		CedarAddQueueBudget(k->Cedar, diff);
+	}
 
 	// Since the packet arrives from the HUB of the link destination,
 	// deliver it to the ReceivedBlocks of the server session
 	if (data != NULL)
 	{
-		block = NewBlock(data, size, 0);
-
-		LockQueue(server_connection->ReceivedBlocks);
+		if (halting == false)
 		{
-			InsertQueue(server_connection->ReceivedBlocks, block);
+			block = NewBlock(data, size, 0);
 		}
-		UnlockQueue(server_connection->ReceivedBlocks);
+
+		if (k->LockFlag == false)
+		{
+			UINT current_num;
+			int diff;
+
+			k->LockFlag = true;
+			LockQueue(server_connection->ReceivedBlocks);
+
+			current_num = GetQueueNum(server_connection->ReceivedBlocks);
+
+			diff = (int)current_num - (int)k->LastServerConnectionReceivedBlocksNum;
+
+			k->LastServerConnectionReceivedBlocksNum = current_num;
+
+			CedarAddQueueBudget(k->Cedar, diff);
+		}
+
+		if (halting == false)
+		{
+			if (CedarGetFifoBudgetBalance(k->Cedar) == 0)
+			{
+				FreeBlock(block);
+			}
+			else
+			{
+				InsertReceivedBlockToQueue(server_connection, block, true);
+			}
+		}
 	}
 	else
 	{
+		UINT current_num;
+		int diff;
+
+		current_num = GetQueueNum(server_connection->ReceivedBlocks);
+
+		diff = (int)current_num - (int)k->LastServerConnectionReceivedBlocksNum;
+
+		k->LastServerConnectionReceivedBlocksNum = current_num;
+
+		CedarAddQueueBudget(k->Cedar, diff);
+
+		if (k->LockFlag)
+		{
+			k->LockFlag = false;
+			UnlockQueue(server_connection->ReceivedBlocks);
+		}
+
 		// Issue the Cancel, since finished store all packets when the data == NULL
 		Cancel(server_session->Cancel1);
 
@@ -237,7 +253,12 @@ bool LinkPaPutPacket(SESSION *s, void *data, UINT size)
 		}
 	}
 
-	return true;
+	if (halting)
+	{
+		ret = false;
+	}
+
+	return ret;
 }
 
 // Release the packet adapter
@@ -249,6 +270,9 @@ void LinkPaFree(SESSION *s)
 	{
 		return;
 	}
+
+	CedarAddQueueBudget(k->Cedar, -((int)k->LastServerConnectionReceivedBlocksNum));
+	k->LastServerConnectionReceivedBlocksNum = 0;
 
 	// Stop the server session
 	StopSession(k->ServerSession);
@@ -266,6 +290,8 @@ void LinkPaFree(SESSION *s)
 	UnlockQueue(k->SendPacketQueue);
 
 	ReleaseQueue(k->SendPacketQueue);
+
+	k->CurrentSendPacketQueueSize = 0;
 }
 
 // Packet adapter
@@ -354,6 +380,11 @@ void SetLinkOnline(LINK *k)
 		return;
 	}
 
+	if (k->NoOnline)
+	{
+		return;
+	}
+
 	if (k->Offline == false)
 	{
 		return;
@@ -437,6 +468,8 @@ void StopAllLink(HUB *h)
 		return;
 	}
 
+	h->StopAllLinkFlag = true;
+
 	LockList(h->LinkList);
 	{
 		link_list = ToArray(h->LinkList);
@@ -455,6 +488,8 @@ void StopAllLink(HUB *h)
 	}
 
 	Free(link_list);
+
+	h->StopAllLinkFlag = false;
 }
 
 // Start the link
@@ -475,6 +510,8 @@ void StartLink(LINK *k)
 			return;
 		}
 		k->Started = true;
+
+		Inc(k->Cedar->CurrentActiveLinks);
 	}
 	UnlockLink(k);
 
@@ -506,6 +543,8 @@ void StopLink(LINK *k)
 		}
 		k->Started = false;
 		k->Halting = true;
+
+		Dec(k->Cedar->CurrentActiveLinks);
 	}
 	UnlockLink(k);
 
@@ -563,8 +602,7 @@ void NormalizeLinkPolicy(POLICY *p)
 	}
 
 	p->Access = true;
-	p->NoBridge = p->NoRouting = p->PrivacyFilter =
-		p->MonitorPort = false;
+	p->NoBridge = p->NoRouting = p->MonitorPort = false;
 	p->MaxConnection = 32;
 	p->TimeOut = 20;
 	p->FixPassword = false;
@@ -598,7 +636,7 @@ LINK *NewLink(CEDAR *cedar, HUB *hub, CLIENT_OPTION *option, CLIENT_AUTH *auth, 
 
 	// Limitation of authentication method
 	if (auth->AuthType != CLIENT_AUTHTYPE_ANONYMOUS && auth->AuthType != CLIENT_AUTHTYPE_PASSWORD &&
-		auth->AuthType != CLIENT_AUTHTYPE_PLAIN_PASSWORD && auth->AuthType != CLIENT_AUTHTYPE_CERT)
+		auth->AuthType != CLIENT_AUTHTYPE_PLAIN_PASSWORD && auth->AuthType != CLIENT_AUTHTYPE_CERT && auth->AuthType != CLIENT_AUTHTYPE_OPENSSLENGINE)
 	{
 		// Authentication method other than anonymous authentication, password authentication, plain password, certificate authentication cannot be used
 		return NULL;
@@ -623,6 +661,9 @@ LINK *NewLink(CEDAR *cedar, HUB *hub, CLIENT_OPTION *option, CLIENT_AUTH *auth, 
 
 	// Link object
 	k = ZeroMalloc(sizeof(LINK));
+
+	k->StopAllLinkFlag = &hub->StopAllLinkFlag;
+
 	k->lock = NewLock();
 	k->ref = NewRef();
 
@@ -649,7 +690,3 @@ LINK *NewLink(CEDAR *cedar, HUB *hub, CLIENT_OPTION *option, CLIENT_AUTH *auth, 
 	return k;
 }
 
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/

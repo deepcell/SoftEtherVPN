@@ -1,119 +1,32 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Cedar Communication Module
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2014 Daiyuu Nobori.
-// Copyright (c) 2012-2014 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2014 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE IT IN OTHER COUNTRIES. IMPORTING THIS
-// SOFTWARE INTO OTHER COUNTRIES IS AT YOUR OWN RISK. SOME COUNTRIES
-// PROHIBIT ENCRYPTED COMMUNICATIONS. USING THIS SOFTWARE IN OTHER
-// COUNTRIES MIGHT BE RESTRICTED.
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
 
 
 // SW.c
 // Setup Wizard for Win32
 
-#include <GlobalConst.h>
+#ifdef OS_WIN32
 
-#ifdef	WIN32
-
-#define	SM_C
-#define	CM_C
-#define	NM_C
-#define	SW_C
-
-#define	_WIN32_WINNT		0x0502
-#define	WINVER				0x0502
-#include <winsock2.h>
-#include <windows.h>
-#include <wincrypt.h>
-#include <wininet.h>
-#include <shlobj.h>
-#include <commctrl.h>
-#include <Dbghelp.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <wchar.h>
-#include <stdarg.h>
-#include <time.h>
-#include <errno.h>
-#include <Mayaqua/Mayaqua.h>
-#include <Cedar/Cedar.h>
-#include "CMInner.h"
-#include "SMInner.h"
-#include "NMInner.h"
-#include "EMInner.h"
+#include "SW.h"
 #include "SWInner.h"
+
+#include "CMInner.h"
+#include "Console.h"
+#include "SeLowUser.h"
+#include "Win32Com.h"
+
+#include "Mayaqua/Cfg.h"
+#include "Mayaqua/FileIO.h"
+#include "Mayaqua/Internat.h"
+#include "Mayaqua/Memory.h"
+#include "Mayaqua/Microsoft.h"
+#include "Mayaqua/Str.h"
+#include "Mayaqua/Tick64.h"
+#include "Mayaqua/Win32.h"
+
 #include "../PenCore/resource.h"
+
+#include <ShlObj.h>
 
 //// Old MSI product information
 // VPN Server
@@ -137,26 +50,19 @@ static char *sfx_vpn_server_bridge_files[] =
 {
 	"vpnsetup.exe",
 	"vpnserver.exe",
-	"vpnserver_x64.exe",
 	"vpnbridge.exe",
-	"vpnbridge_x64.exe",
 	"vpnsmgr.exe",
-	"vpnsmgr_x64.exe",
 	"vpncmd.exe",
-	"vpncmd_x64.exe",
 	"hamcore.se2",
 };
 static char *sfx_vpn_client_files[] =
 {
 	"vpnsetup.exe",
 	"vpnclient.exe",
-	"vpnclient_x64.exe",
 	"vpncmgr.exe",
-	"vpncmgr_x64.exe",
 	"vpncmd.exe",
-	"vpncmd_x64.exe",
-	"vpninstall.exe",
-	"vpnweb.cab",
+	//"vpninstall.exe",
+	//"vpnweb.cab",
 	"hamcore.se2",
 };
 
@@ -215,7 +121,7 @@ bool SwCompileSfx(LIST *o, wchar_t *dst_filename)
 	{
 		// Generate the setup.exe file in the Temp directory
 		ConbinePathW(exe_filename, sizeof(exe_filename), MsGetMyTempDirW(), L"setup.exe");
-		if (FileCopyW(L"|vpnsetup_nosign.exe", exe_filename))
+		if (FileCopyW(L"vpnsetup.exe", exe_filename))
 		{
 			// Resource updating start
 			HANDLE h = _BeginUpdateResourceW(exe_filename, false);
@@ -362,8 +268,6 @@ bool SwAddBasicFilesToList(LIST *o, char *component_name)
 	{
 		return false;
 	}
-
-	Add(o, SwNewSfxFile("install_src.dat", L"|install_src.dat"));
 
 	return true;
 }
@@ -633,7 +537,7 @@ bool SwSfxCopyVgFiles(HWND hWnd, wchar_t *src, wchar_t *dst)
 	}
 
 	msg = L"The file \"%s\" was not found on the directory which the installer \"%s\" is located on.\r\n\r\n"
-		L"To continue the installation, the file \"%s\" is required on the same direcotry.\r\n"
+		L"To continue the installation, the file \"%s\" is required on the same directory.\r\n"
 		L"If you have extracted the installer from a ZIP archive, you have to also extract the file \"%s\" from the ZIP archive together.";
 
 	MsgBoxEx(hWnd, MB_ICONINFORMATION, msg, srcfilename, exefilename, srcfilename, srcfilename);
@@ -751,7 +655,14 @@ UINT SWExec()
 		MayaquaMinimalMode();
 	}
 
+#if defined(_DEBUG) || defined(DEBUG)	// In VC++ compilers, the macro is "_DEBUG", not "DEBUG".
+	// If set memcheck = true, the program will be vitally slow since it will log all malloc() / realloc() / free() calls to find the cause of memory leak.
+	// For normal debug we set memcheck = false.
+	// Please set memcheck = true if you want to test the cause of memory leaks.
+	InitMayaqua(false, true, 0, NULL);
+#else
 	InitMayaqua(false, false, 0, NULL);
+#endif
 	InitCedar();
 
 	if (is_datafile_exists == false)
@@ -864,9 +775,7 @@ void SwGenerateDefaultSfxFileName(wchar_t *name, UINT size)
 	}
 
 	UniFormat(name, size, L"easy-" GC_SW_SOFTETHER_PREFIX_W L"vpnclient-v%u.%02u-%u-%04u-%02u-%02u-windows.exe",
-		CEDAR_VER / 100,
-		CEDAR_VER % 100,
-		CEDAR_BUILD,
+		CEDAR_VERSION_MAJOR, CEDAR_VERSION_MINOR, CEDAR_VERSION_BUILD,
 		BUILD_DATE_Y, BUILD_DATE_M, BUILD_DATE_D);
 }
 
@@ -880,9 +789,7 @@ void SwGenerateDefaultZipFileName(wchar_t *name, UINT size)
 	}
 
 	UniFormat(name, size, L"web-" GC_SW_SOFTETHER_PREFIX_W L"vpnclient-v%u.%02u-%u-%04u-%02u-%02u-windows.zip",
-		CEDAR_VER / 100,
-		CEDAR_VER % 100,
-		CEDAR_BUILD,
+		CEDAR_VERSION_MAJOR, CEDAR_VERSION_MINOR, CEDAR_VERSION_BUILD,
 		BUILD_DATE_Y, BUILD_DATE_M, BUILD_DATE_D);
 }
 
@@ -1188,6 +1095,10 @@ UINT SwGetLangIcon(char *name)
 	{
 		ret = ICO_LANG_CHINESE;
 	}
+	else if (StrCmpi(name, "tw") == 0)
+	{
+		ret = ICO_LANG_TRADITIONAL_CHINESE;
+	}
 
 	return ret;
 }
@@ -1266,15 +1177,7 @@ void SwLang1Init(HWND hWnd, SW *sw)
 		UniFormat(tmp, sizeof(tmp), L"%s (%s)", t.TitleEnglish, t.TitleLocal);
 
 		SetText(hWnd, E_CURRENT, tmp);
-
-		if (MsIsVista())
-		{
-			SetFont(hWnd, E_CURRENT, GetMeiryoFontEx(11));
-		}
-		else
-		{
-			DlgFont(hWnd, E_CURRENT, 11, false);
-		}
+		SetFont(hWnd, E_CURRENT, GetMeiryoFontEx(11));
 	}
 }
 
@@ -1317,14 +1220,7 @@ UINT SwLang1(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wizard, 
 	case WM_INITDIALOG:
 		LvInitEx2(hWnd, L_LIST, false, true);
 
-		if (MsIsVista())
-		{
-			SetFont(hWnd, L_LIST, GetMeiryoFontEx(12));
-		}
-		else
-		{
-			DlgFont(hWnd, L_LIST, 12, false);
-		}
+		SetFont(hWnd, L_LIST, GetMeiryoFontEx(12));
 
 		LvInsertColumn(hWnd, L_LIST, 0, L"English Name", 250);
 		LvInsertColumn(hWnd, L_LIST, 1, L"Local Name", 250);
@@ -1351,14 +1247,6 @@ UINT SwLang1(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wizard, 
 		{
 			// Multiple-starts prevention
 			MsgBox(hWnd, MB_ICONINFORMATION, _UU("SW_OTHER_INSTANCE_EXISTS"));
-			break;
-		}
-
-		if (MsIsNt() == false)
-		{
-			// Win9x
-			MsgBox(hWnd, MB_ICONSTOP,
-				L"Windows 9x / Me doesn't support multi-language switcing.\r\n\r\nIf you want to switch to another language, please use Windows NT 4.0, 2000 or greater.");
 			break;
 		}
 
@@ -1453,35 +1341,27 @@ LABEL_RUN_CHILD_PROCESS:
 				// In the case of system mode
 				if (MsIsAdmin() == false)
 				{
-					if (MsIsVista())
+					if (sw->IsReExecForUac == false)
 					{
-						if (sw->IsReExecForUac == false)
-						{
-							// If there is no Admin privileges in Vista or later, attempt to acquire Admin rights by UAC first during the first run
-							UniStrCat(add_param, sizeof(add_param), L" /SETLANGANDREBOOT:true");
+						// If there is no Admin privileges in Vista or later, attempt to acquire Admin rights by UAC first during the first run
+						UniStrCat(add_param, sizeof(add_param), L" /SETLANGANDREBOOT:true");
 
-							if (SwReExecMyself(sw, add_param, true))
-							{
-								// Terminate itself if it succeeds to start the child process
-								CloseWizard(wizard_page);
-								break;
-							}
-							else
-							{
-								// Do nothing if it fails to start in the UAC
-								sw->DoubleClickBlocker = false;
-								break;
-							}
+						if (SwReExecMyself(sw, add_param, true))
+						{
+							// Terminate itself if it succeeds to start the child process
+							CloseWizard(wizard_page);
+							break;
 						}
 						else
 						{
-							// If no Admin privileges after being started by the UAC, jump to the guidance screen indicating it is not Admin
-							return D_SW_NOT_ADMIN;
+							// Do nothing if it fails to start in the UAC
+							sw->DoubleClickBlocker = false;
+							break;
 						}
 					}
 					else
 					{
-						// Jump to guide screen indicating that it is not the Admin in the case of XP or earlier
+						// If no Admin privileges after being started by the UAC, jump to the guidance screen indicating it is not Admin
 						return D_SW_NOT_ADMIN;
 					}
 				}
@@ -1585,32 +1465,24 @@ UINT SwUninst1(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wizard
 		// In the case of system mode
 		if (MsIsAdmin() == false)
 		{
-			if (MsIsVista())
+			if (sw->IsReExecForUac == false)
 			{
-				if (sw->IsReExecForUac == false)
+				// If there is no Admin privileges in Vista or later, attempt to acquire Admin rights by UAC first during the first run
+				if (SwReExecMyself(sw, NULL, true))
 				{
-					// If there is no Admin privileges in Vista or later, attempt to acquire Admin rights by UAC first during the first run
-					if (SwReExecMyself(sw, NULL, true))
-					{
-						// Terminate itself if it succeeds to start the child process
-						CloseWizard(wizard_page);
-						break;
-					}
-					else
-					{
-						// If fail to run in UAC, jump to guide screen indicating that it is not Admin
-						return D_SW_NOT_ADMIN;
-					}
+					// Terminate itself if it succeeds to start the child process
+					CloseWizard(wizard_page);
+					break;
 				}
 				else
 				{
-					// If no Admin privileges after being started by the UAC, jump to the guidance screen indicating it is not Admin
+					// If fail to run in UAC, jump to guide screen indicating that it is not Admin
 					return D_SW_NOT_ADMIN;
 				}
 			}
 			else
 			{
-				// Jump to guide screen indicating that it is not the Admin in the case of XP or earlier
+				// If no Admin privileges after being started by the UAC, jump to the guidance screen indicating it is not Admin
 				return D_SW_NOT_ADMIN;
 			}
 		}
@@ -1723,7 +1595,7 @@ UINT SwFinish(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wizard,
 	return 0;
 }
 
-// Error occuring screen
+// Error occurring screen
 UINT SwError(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wizard, WIZARD_PAGE *wizard_page, void *param)
 {
 	SW *sw = (SW *)param;
@@ -2040,7 +1912,6 @@ void SwDeleteShortcuts(SW_LOGFILE *logfile)
 // Uninstall main
 bool SwUninstallMain(SW *sw, WIZARD_PAGE *wp, SW_COMPONENT *c)
 {
-	bool x64 = MsIs64BitWindows();
 	bool ok;
 	wchar_t tmp[MAX_SIZE];
 	UINT i;
@@ -2066,7 +1937,7 @@ bool SwUninstallMain(SW *sw, WIZARD_PAGE *wp, SW_COMPONENT *c)
 
 		if (UniIsEmptyStr(svc_title) == false)
 		{
-			if (sw->IsSystemMode && MsIsNt())
+			if (sw->IsSystemMode)
 			{
 				// WinNT and system mode
 				if (MsIsServiceRunning(c->SvcName))
@@ -2236,17 +2107,7 @@ LABEL_RETRY_1:
 
 		if (UniIsEmptyStr(svc_title) == false)
 		{
-			if (sw->IsSystemMode == false || MsIsNt() == false)
-			{
-				// Win9x or user mode
-				if (MsIsNt() == false)
-				{
-					// Remove the Run key from the registry for Win9x
-					MsRegDeleteValue(REG_LOCAL_MACHINE, WIN9X_SVC_REGKEY_1, c->SvcName);
-					MsRegDeleteValue(REG_LOCAL_MACHINE, WIN9X_SVC_REGKEY_2, c->SvcName);
-				}
-			}
-			else
+			if (sw->IsSystemMode)
 			{
 				// System mode
 				UniFormat(tmp, sizeof(tmp), _UU("SW_PERFORM_MSG_UNINSTALL_SVC"), svc_title);
@@ -2356,6 +2217,44 @@ LABEL_RETRY_4:
 		FileDeleteW(setuplog);
 	}
 
+	// Delete the existing Virtual Network Adapters
+	// Currently disabled because of 32bit/64bit problems
+#if	0
+	if (c->Id == SW_CMP_VPN_CLIENT)
+	{
+		if (MsIsNt())
+		{
+			if (!(MsIs64BitWindows() && Is32()))
+			{
+				UINT i;
+				TOKEN_LIST *t;
+
+				SwPerformPrint(wp, _UU("SW_PERFORM_MSG_DELETE_NIC"));
+
+				// Enumeration
+				t = MsEnumNetworkAdapters(VLAN_ADAPTER_NAME, VLAN_ADAPTER_NAME_OLD);
+				if (t != NULL)
+				{
+					if (t->NumTokens >= 1)
+					{
+						if (SwPerformMsgBox(wp, MB_ICONQUESTION | MB_YESNO | MB_DEFBUTTON2, _UU("SW_PERFORM_MSG_DELETE_NIC")) == IDYES)
+						{
+							for (i = 0;i < t->NumTokens;i++)
+							{
+								char *name = t->Token[i];
+
+								MsUninstallVLan(name);
+							}
+						}
+					}
+
+					FreeToken(t);
+				}
+			}
+		}
+	}
+#endif
+
 	SwPerformPrint(wp, _UU("SW_PERFORM_MSG_UPDATING"));
 
 	// Notify the update to the system
@@ -2378,7 +2277,6 @@ LABEL_CLEANUP:
 void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 {
 	wchar_t tmp[MAX_SIZE];
-	bool x64 = MsIs64BitWindows();
 	wchar_t src_setup_exe_fullpath[MAX_PATH];
 	wchar_t src_setup_exe_dir[MAX_PATH];
 	wchar_t src_setup_exe_filename[MAX_PATH];
@@ -2440,18 +2338,9 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 		CombinePathW(tmp, sizeof(tmp), sw->InstallDir, L"backup.vpn_server.config");
 		Add(t->SetSecurityPaths, CopyUniStr(tmp));
 
-		if (x64 == false)
-		{
-			vpnserver = SwNewCopyTask(L"vpnserver.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpnsmgr = SwNewCopyTask(L"vpnsmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
-		else
-		{
-			vpnserver = SwNewCopyTask(L"vpnserver_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmd = SwNewCopyTask(L"vpncmd_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpnsmgr = SwNewCopyTask(L"vpnsmgr_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
+		vpnserver = SwNewCopyTask(L"vpnserver.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		vpnsmgr = SwNewCopyTask(L"vpnsmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
 
 		Add(t->CopyTasks, vpnserver);
 		Add(t->CopyTasks, vpncmd);
@@ -2488,19 +2377,17 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 			_UU("SW_LINK_NAME_TCP"),
 			_UU("SW_LINK_NAME_TCP_COMMENT"), false));
 
-		if (MsIsWin2000OrGreater())
-		{
-			Add(t->LinkTasks, SwNewLinkTask(MsGetSystem32DirW(), L"services.msc", NULL, L"filemgmt.dll", 0, dir_config_program,
-				_UU("SW_LINK_NAME_SERVICES"),
-				_UU("SW_LINK_NAME_SERVICES_COMMENT"), false));
 
-			if (sw->IsSystemMode)
-			{
-				// Debugging information collecting tool
-				Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, vpncmd->DstFileName, L"/debug", L"vpnsetup.exe", 4, dir_admin_tools,
-					_UU("SW_LINK_NAME_DEBUG"),
-					_UU("SW_LINK_NAME_DEBUG_COMMENT"), false));
-			}
+		Add(t->LinkTasks, SwNewLinkTask(MsGetSystem32DirW(), L"services.msc", NULL, L"filemgmt.dll", 0, dir_config_program,
+			_UU("SW_LINK_NAME_SERVICES"),
+			_UU("SW_LINK_NAME_SERVICES_COMMENT"), false));
+
+		if (sw->IsSystemMode)
+		{
+			// Debugging information collecting tool
+			Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, vpncmd->DstFileName, L"/debug", L"vpnsetup.exe", 4, dir_admin_tools,
+				_UU("SW_LINK_NAME_DEBUG"),
+				_UU("SW_LINK_NAME_DEBUG_COMMENT"), false));
 		}
 
 		if (sw->IsSystemMode == false)
@@ -2520,18 +2407,9 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 		CombinePathW(tmp, sizeof(tmp), sw->InstallDir, L"backup.vpn_bridge.config");
 		Add(t->SetSecurityPaths, CopyUniStr(tmp));
 
-		if (x64 == false)
-		{
-			vpnbridge = SwNewCopyTask(L"vpnbridge.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpnsmgr = SwNewCopyTask(L"vpnsmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
-		else
-		{
-			vpnbridge = SwNewCopyTask(L"vpnbridge_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmd = SwNewCopyTask(L"vpncmd_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpnsmgr = SwNewCopyTask(L"vpnsmgr_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
+		vpnbridge = SwNewCopyTask(L"vpnbridge.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		vpnsmgr = SwNewCopyTask(L"vpnsmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
 
 		Add(t->CopyTasks, vpnbridge);
 		Add(t->CopyTasks, vpncmd);
@@ -2568,19 +2446,16 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 			_UU("SW_LINK_NAME_TCP"),
 			_UU("SW_LINK_NAME_TCP_COMMENT"), false));
 
-		if (MsIsWin2000OrGreater())
-		{
-			Add(t->LinkTasks, SwNewLinkTask(MsGetSystem32DirW(), L"services.msc", NULL, L"filemgmt.dll", 0, dir_config_program,
-				_UU("SW_LINK_NAME_SERVICES"),
-				_UU("SW_LINK_NAME_SERVICES_COMMENT"), false));
+		Add(t->LinkTasks, SwNewLinkTask(MsGetSystem32DirW(), L"services.msc", NULL, L"filemgmt.dll", 0, dir_config_program,
+			_UU("SW_LINK_NAME_SERVICES"),
+			_UU("SW_LINK_NAME_SERVICES_COMMENT"), false));
 
-			if (sw->IsSystemMode)
-			{
-				// Debugging information collecting tool
-				Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, vpncmd->DstFileName, L"/debug", L"vpnsetup.exe", 4, dir_admin_tools,
-					_UU("SW_LINK_NAME_DEBUG"),
-					_UU("SW_LINK_NAME_DEBUG_COMMENT"), false));
-			}
+		if (sw->IsSystemMode)
+		{
+			// Debugging information collecting tool
+			Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, vpncmd->DstFileName, L"/debug", L"vpnsetup.exe", 4, dir_admin_tools,
+				_UU("SW_LINK_NAME_DEBUG"),
+				_UU("SW_LINK_NAME_DEBUG_COMMENT"), false));
 		}
 
 		if (sw->IsSystemMode == false)
@@ -2596,33 +2471,17 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 		// VPN Client
 		SW_TASK_COPY *ct;
 		SW_TASK_COPY *vpnclient, *vpncmd, *vpncmgr;
-		SW_TASK_COPY *vpnclient_gomi, *vpncmd_gomi, *vpncmgr_gomi;
 		SW_TASK_COPY *sfx_cache = NULL;
-		SW_TASK_COPY *vpnweb;
-		SW_TASK_COPY *vpninstall;
+		//SW_TASK_COPY *vpnweb;
+		//SW_TASK_COPY *vpninstall;
 		wchar_t *src_config_filename;
 
-		CombinePathW(tmp, sizeof(tmp), sw->InstallDir, L"backup.vpn_vpnclient.config");
+		CombinePathW(tmp, sizeof(tmp), sw->InstallDir, L"backup.vpn_client.config");
 		Add(t->SetSecurityPaths, CopyUniStr(tmp));
 
-		if (x64 == false)
-		{
-			vpnclient = SwNewCopyTask(L"vpnclient.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmgr = SwNewCopyTask(L"vpncmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpnclient_gomi = SwNewCopyTask(L"vpnclient_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmd_gomi = SwNewCopyTask(L"vpncmd_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmgr_gomi = SwNewCopyTask(L"vpncmgr_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
-		else
-		{
-			vpnclient = SwNewCopyTask(L"vpnclient_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmd = SwNewCopyTask(L"vpncmd_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmgr = SwNewCopyTask(L"vpncmgr_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpnclient_gomi = SwNewCopyTask(L"vpnclient.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmd_gomi = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmgr_gomi = SwNewCopyTask(L"vpncmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
+		vpnclient = SwNewCopyTask(L"vpnclient.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		vpncmgr = SwNewCopyTask(L"vpncmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
 
 		if (vpncmgr != NULL)
 		{
@@ -2645,17 +2504,14 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 			}
 		}
 
-		vpnweb = SwNewCopyTask(L"vpnweb.cab", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		vpninstall = SwNewCopyTask(L"vpninstall.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		//vpnweb = SwNewCopyTask(L"vpnweb.cab", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		//vpninstall = SwNewCopyTask(L"vpninstall.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
 
 		Add(t->CopyTasks, vpnclient);
 		Add(t->CopyTasks, vpncmd);
 		Add(t->CopyTasks, vpncmgr);
-		Add(t->CopyTasks, vpnclient_gomi);
-		Add(t->CopyTasks, vpncmd_gomi);
-		Add(t->CopyTasks, vpncmgr_gomi);
-		Add(t->CopyTasks, vpnweb);
-		Add(t->CopyTasks, vpninstall);
+		//Add(t->CopyTasks, vpnweb);
+		//Add(t->CopyTasks, vpninstall);
 
 
 		if (sfx_cache != NULL)
@@ -2700,32 +2556,26 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 			_UU("SW_LINK_NAME_TCP"),
 			_UU("SW_LINK_NAME_TCP_COMMENT"), false));
 
-		if (MsIsWin2000OrGreater())
-		{
-			Add(t->LinkTasks, SwNewLinkTask(MsGetSystem32DirW(), L"services.msc", NULL, L"filemgmt.dll", 0, dir_config_program,
-				_UU("SW_LINK_NAME_SERVICES"),
-				_UU("SW_LINK_NAME_SERVICES_COMMENT"), false));
+		Add(t->LinkTasks, SwNewLinkTask(MsGetSystem32DirW(), L"services.msc", NULL, L"filemgmt.dll", 0, dir_config_program,
+			_UU("SW_LINK_NAME_SERVICES"),
+			_UU("SW_LINK_NAME_SERVICES_COMMENT"), false));
 
-			if (sw->IsSystemMode)
-			{
-				// Debugging information collecting tool
-				Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, vpncmd->DstFileName, L"/debug", L"vpnsetup.exe", 4, dir_admin_tools,
-					_UU("SW_LINK_NAME_DEBUG"),
-					_UU("SW_LINK_NAME_DEBUG_COMMENT"), false));
-			}
+		if (sw->IsSystemMode)
+		{
+			// Debugging information collecting tool
+			Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, vpncmd->DstFileName, L"/debug", L"vpnsetup.exe", 4, dir_admin_tools,
+				_UU("SW_LINK_NAME_DEBUG"),
+				_UU("SW_LINK_NAME_DEBUG_COMMENT"), false));
 		}
 
 		// Programs\PacketiX VPN Client\System administrators tool
-		if (MsIsNt())
-		{
-			Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, L"vpnsetup.exe", L"/easy:true", L"vpnsetup.exe", 12, dir_admin_tools,
-				_UU("SW_LINK_NAME_EASYINSTALLER"),
-				_UU("SW_LINK_NAME_EASYINSTALLER_COMMENT"), false));
+		Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, L"vpnsetup.exe", L"/easy:true", L"vpnsetup.exe", 12, dir_admin_tools,
+			_UU("SW_LINK_NAME_EASYINSTALLER"),
+			_UU("SW_LINK_NAME_EASYINSTALLER_COMMENT"), false));
 
-			Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, L"vpnsetup.exe", L"/web:true", L"vpnsetup.exe", 1, dir_admin_tools,
-				_UU("SW_LINK_NAME_WEBINSTALLER"),
-				_UU("SW_LINK_NAME_WEBINSTALLER_COMMENT"), false));
-		}
+		Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, L"vpnsetup.exe", L"/web:true", L"vpnsetup.exe", 1, dir_admin_tools,
+			_UU("SW_LINK_NAME_WEBINSTALLER"),
+			_UU("SW_LINK_NAME_WEBINSTALLER_COMMENT"), false));
 
 		// Startup
 		Add(t->LinkTasks, SwNewLinkTask(sw->InstallDir, vpncmgr->DstFileName, L"/startup", NULL, 0, dir_startup,
@@ -2737,16 +2587,8 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 		// VPN Server Manager (Tools Only)
 		SW_TASK_COPY *vpncmd, *vpnsmgr;
 
-		if (x64 == false)
-		{
-			vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpnsmgr = SwNewCopyTask(L"vpnsmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
-		else
-		{
-			vpncmd = SwNewCopyTask(L"vpncmd_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpnsmgr = SwNewCopyTask(L"vpnsmgr_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
+		vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		vpnsmgr = SwNewCopyTask(L"vpnsmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
 
 		Add(t->CopyTasks, vpncmd);
 		Add(t->CopyTasks, vpnsmgr);
@@ -2773,16 +2615,8 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 		// VPN Client Manager (Tools Only)
 		SW_TASK_COPY *vpncmd, *vpncmgr;
 
-		if (x64 == false)
-		{
-			vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmgr = SwNewCopyTask(L"vpncmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
-		else
-		{
-			vpncmd = SwNewCopyTask(L"vpncmd_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-			vpncmgr = SwNewCopyTask(L"vpncmgr_x64.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
-		}
+		vpncmd = SwNewCopyTask(L"vpncmd.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
+		vpncmgr = SwNewCopyTask(L"vpncmgr.exe", NULL, sw->InstallSrc, sw->InstallDir, true, false);
 
 		Add(t->CopyTasks, vpncmd);
 		Add(t->CopyTasks, vpncmgr);
@@ -2812,16 +2646,13 @@ void SwDefineTasks(SW *sw, SW_TASK *t, SW_COMPONENT *c)
 		tmp1,
 		tmp2, false));
 
-	// Language settings (except for Win9x)
-	if (MsIsNt())
-	{
-		UniFormat(tmp1, sizeof(tmp1), _UU("SW_LINK_NAME_LANGUAGE"), c->Title);
-		UniFormat(tmp2, sizeof(tmp2), _UU("SW_LINK_NAME_LANGUAGE_COMMENT"), c->Title);
-		Add(t->LinkTasks, SwNewLinkTask(setup_exe->DstDir, setup_exe->DstFileName, L"/language:yes",
-			L"vpnsetup.exe", 10, dir_config_language,
-			tmp1,
-			tmp2, false));
-	}
+	// Language settings
+	UniFormat(tmp1, sizeof(tmp1), _UU("SW_LINK_NAME_LANGUAGE"), c->Title);
+	UniFormat(tmp2, sizeof(tmp2), _UU("SW_LINK_NAME_LANGUAGE_COMMENT"), c->Title);
+	Add(t->LinkTasks, SwNewLinkTask(setup_exe->DstDir, setup_exe->DstFileName, L"/language:yes",
+		L"vpnsetup.exe", 10, dir_config_language,
+		tmp1,
+		tmp2, false));
 
 	// Hamcore!
 	Add(t->CopyTasks, SwNewCopyTask(L"hamcore.se2", NULL, sw->InstallSrc, sw->InstallDir, true, true));
@@ -2862,15 +2693,13 @@ bool SwWebMain(SW *sw, WIZARD_PAGE *wp)
 		char package_name[MAX_SIZE];
 		ZIP_PACKER *z = NULL;
 
-		ToStr(ver_major, CEDAR_VER / 100);
-		ToStr(ver_minor, CEDAR_VER % 100);
-		ToStr(ver_build, CEDAR_BUILD);
+		ToStr(ver_major, CEDAR_VERSION_MAJOR);
+		ToStr(ver_minor, CEDAR_VERSION_MINOR);
+		ToStr(ver_build, CEDAR_VERSION_BUILD);
 
 		Format(package_name, sizeof(package_name),
 			GC_SW_SOFTETHER_PREFIX "vpnclient-v%u.%02u-%u-%04u-%02u-%02u-windows.exe",
-			CEDAR_VER / 100,
-			CEDAR_VER % 100,
-			CEDAR_BUILD,
+			CEDAR_VERSION_MAJOR, CEDAR_VERSION_MINOR, CEDAR_VERSION_BUILD,
 			BUILD_DATE_Y, BUILD_DATE_M, BUILD_DATE_D);
 
 		GetCurrentLang(&current_lang);
@@ -3070,7 +2899,6 @@ bool SwInstallMain(SW *sw, WIZARD_PAGE *wp, SW_COMPONENT *c)
 	UINT i;
 	wchar_t tmp[MAX_SIZE * 2];
 	bool ok;
-	bool x64 = MsIs64BitWindows();
 	// Validate arguments
 	if (sw == NULL || wp == NULL || c == NULL)
 	{
@@ -3098,17 +2926,45 @@ bool SwInstallMain(SW *sw, WIZARD_PAGE *wp, SW_COMPONENT *c)
 	}
 
 	// Install the SeLow
-	if (SuIsSupportedOs())
+	if (SuIsSupportedOs(true))
 	{
 		// Only in the system mode
 		if (c->InstallService && sw->IsSystemMode)
 		{
 			// Not to install in the case of the VPN Client
-			//if (c->Id != SW_CMP_VPN_CLIENT)
-			{
-				SwPerformPrint(wp, _UU("SW_PERFORM_MSG_INSTALL_SELOW"));
+			bool install_su = false;
 
-				SuInstallDriver(false);
+			if (c->Id != SW_CMP_VPN_CLIENT)
+			{
+				install_su = true;
+			}
+
+
+			if (install_su)
+			{
+				bool ret;
+
+				SwPerformPrint(wp, _UU("SW_PERFORM_MSG_INSTALL_SELOW"));
+				ret = SuInstallDriver(false);
+
+				if (ret == false)
+				{
+					if (MsIs64BitWindows() && MsIsWindows10())
+					{
+						void *proc_handle = NULL;
+						wchar_t exe[MAX_PATH];
+
+						CombinePathW(exe, sizeof(exe), MsGetExeDirNameW(), L"vpnsetup.exe");
+
+						if (MsExecuteEx2W(exe, L"/SUINSTMODE:yes", &proc_handle, true))
+						{
+							if (proc_handle != NULL)
+							{
+								MsWaitProcessExit(proc_handle);
+							}
+						}
+					}
+				}
 			}
 		}
 	}
@@ -3152,7 +3008,7 @@ bool SwInstallMain(SW *sw, WIZARD_PAGE *wp, SW_COMPONENT *c)
 
 		if (UniIsEmptyStr(svc_title) == false)
 		{
-			if (sw->IsSystemMode && MsIsNt())
+			if (sw->IsSystemMode)
 			{
 				// WinNT and system mode
 				if (MsIsServiceRunning(c->SvcName))
@@ -3407,7 +3263,7 @@ LABEL_RETRY_2:
 	}
 
 
-	if (sw->IsSystemMode && MsIsNt())
+	if (sw->IsSystemMode)
 	{
 		// ACL settings only in the system mode
 		for (i = 0;i < LIST_NUM(t->SetSecurityPaths);i++)
@@ -3468,7 +3324,7 @@ LABEL_RETRY_2:
 
 		if (UniIsEmptyStr(svc_title) == false)
 		{
-			if (sw->IsSystemMode == false || MsIsNt() == false)
+			if (sw->IsSystemMode == false)
 			{
 				// Just simply start in user mode or Win9x mode
 				wchar_t fullpath[MAX_SIZE];
@@ -3477,7 +3333,7 @@ LABEL_RETRY_USERMODE_EXEC:
 
 				CombinePathW(fullpath, sizeof(fullpath), sw->InstallDir, c->SvcFileName);
 
-				if (MsExecuteW(fullpath, (MsIsNt() ? L"/usermode" : L"/win9x_service")) == false)
+				if (MsExecuteW(fullpath, L"/usermode") == false)
 				{
 					UniFormat(tmp, sizeof(tmp), _UU("SW_PERFORM_MSG_SVC_USERMODE_EXEC_FAILED"), fullpath);
 
@@ -3490,19 +3346,6 @@ LABEL_RETRY_USERMODE_EXEC:
 					{
 						// Retry
 						goto LABEL_RETRY_USERMODE_EXEC;
-					}
-				}
-				else
-				{
-					if (MsIsNt() == false)
-					{
-						// Register into the registry as a background service in the case of Win9x
-						wchar_t fullpath2[MAX_SIZE];
-
-						UniFormat(fullpath2, sizeof(fullpath2), L"\"%s\" /win9x_service", fullpath);
-
-						MsRegWriteStrW(REG_LOCAL_MACHINE, WIN9X_SVC_REGKEY_1, c->SvcName, fullpath2);
-						MsRegWriteStrW(REG_LOCAL_MACHINE, WIN9X_SVC_REGKEY_2, c->SvcName, fullpath2);
 					}
 				}
 			}
@@ -3635,7 +3478,7 @@ LABEL_CREATE_SHORTCUT:
 
 			if (UniIsEmptyStr(svc_description) == false)
 			{
-				if (sw->IsSystemMode && MsIsNt())
+				if (sw->IsSystemMode)
 				{
 					MsSetServiceDescription(c->SvcName, svc_description);
 				}
@@ -3669,7 +3512,7 @@ LABEL_CREATE_SHORTCUT:
 		// Run the vpncmd and exit immediately
 		wchar_t fullpath[MAX_PATH];
 
-		ConbinePathW(fullpath, sizeof(fullpath), sw->InstallDir, (MsIsX64() ? L"vpncmd_x64.exe" : L"vpncmd.exe"));
+		ConbinePathW(fullpath, sizeof(fullpath), sw->InstallDir, (L"vpncmd.exe"));
 
 		RunW(fullpath, L"/?", true, false);
 	}
@@ -3840,7 +3683,7 @@ L_RETRY_LOG:
 
 		sw->LogFile->IsSystemMode = sw->IsSystemMode;
 		sw->LogFile->Component = sw->CurrentComponent;
-		sw->LogFile->Build = CEDAR_BUILD;
+		sw->LogFile->Build = CEDAR_VERSION_BUILD;
 
 		if (SwSaveLogFile(sw, log_filename, sw->LogFile) == false)
 		{
@@ -3871,7 +3714,7 @@ L_RETRY_LOG:
 		MsRegWriteStrEx2W(sw->IsSystemMode ? REG_LOCAL_MACHINE : REG_CURRENT_USER,
 			keyname, "InstalledDir", sw->InstallDir, false, true);
 		MsRegWriteIntEx2(sw->IsSystemMode ? REG_LOCAL_MACHINE : REG_CURRENT_USER,
-			keyname, "InstalledBuild", CEDAR_BUILD, false, true);
+			keyname, "InstalledBuild", CEDAR_VERSION_BUILD, false, true);
 
 		// Set the language to registry
 		MsRegWriteStrEx2(REG_CURRENT_USER, SW_REG_KEY, "Last User Language",
@@ -4048,7 +3891,7 @@ L_RETRY_LINK:
 		{
 			// Show the error message if it fails
 			UINT msgret;
-			UniFormat(tmp, sizeof(tmp), _UU("SW_PERFORM_MSG_CRAETE_LINK_ERROR"), lnk_fullpath);
+			UniFormat(tmp, sizeof(tmp), _UU("SW_PERFORM_MSG_CREATE_LINK_ERROR"), lnk_fullpath);
 			msgret = SwPerformMsgBox(wp, MB_ICONEXCLAMATION | MB_YESNO, tmp);
 
 			if (msgret == IDYES)
@@ -4376,17 +4219,9 @@ void SwPerformInit(HWND hWnd, SW *sw, WIZARD_PAGE *wp)
 
 	SetTextA(hWnd, S_STATUS, "");
 
-	if (MsIsWinXPOrWinVista())
-	{
-		// Display the progress bar for Windows XP or later
-		SendMsg(hWnd, IDC_PROGRESS1, PBM_SETMARQUEE, TRUE, 100);
-		SetStyle(hWnd, IDC_PROGRESS1, PBS_MARQUEE);
-	}
-	else
-	{
-		// Hide the progress bar in the case of Windows 2000 or earlier
-		Hide(hWnd, IDC_PROGRESS1);
-	}
+	// Display the progress bar
+	SendMsg(hWnd, IDC_PROGRESS1, PBM_SETMARQUEE, TRUE, 100);
+	SetStyle(hWnd, IDC_PROGRESS1, PBS_MARQUEE);
 }
 
 // Do the set-up process
@@ -4642,21 +4477,10 @@ void SwInitDefaultInstallDir(SW *sw)
 		UniStrCpy(sw->DefaultInstallDir_User, sizeof(sw->DefaultInstallDir_User), reg_dir_user);
 	}
 
-	if (MsIsNt() == false)
-	{
-		// Set to system mode for Win9x
-		sw->IsSystemMode = true;
-	}
-
 	if (MsIsAdmin() == false)
 	{
 		sw->IsAvailableSystemMode = false;
 		sw->IsAvailableUserMode = true;
-	}
-	else if (MsIsNt() == false)
-	{
-		sw->IsAvailableSystemMode = true;
-		sw->IsAvailableUserMode = false;
 	}
 	else
 	{
@@ -4925,7 +4749,7 @@ UINT SwDir(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wizard, WI
 			break;
 		}
 
-		if (logfile != NULL && (logfile->Build > CEDAR_BUILD) && UniIsEmptyStr(sw->auto_setting_path) == false &&
+		if (logfile != NULL && (logfile->Build > CEDAR_VERSION_BUILD) && UniIsEmptyStr(sw->auto_setting_path) == false &&
 			sw->CurrentComponent->Id == SW_CMP_VPN_CLIENT && logfile->Component->Id == SW_CMP_VPN_CLIENT)
 		{
 			// In the case of the VPN Client, show a message if a newer version is installed and
@@ -4947,7 +4771,7 @@ UINT SwDir(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wizard, WI
 			{
 				errmsg = _UU("SW_DIR_DST_IS_OTHER_PRODUCT");
 			}
-			else if ((skip_ver_check == false) && (logfile->Build > CEDAR_BUILD))
+			else if ((skip_ver_check == false) && (logfile->Build > CEDAR_VERSION_BUILD))
 			{
 				errmsg = _UU("SW_DIR_DST_IS_NEWER");
 			}
@@ -5342,16 +5166,8 @@ UINT SwComponents(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wiz
 	case WM_INITDIALOG:
 		LvInitEx2(hWnd, L_LIST, false, true);
 
-		if (MsIsVista())
-		{
-			SetFont(hWnd, L_LIST, GetMeiryoFontEx(12));
-			SetFont(hWnd, S_TITLE, GetMeiryoFontEx(11));
-		}
-		else
-		{
-			DlgFont(hWnd, L_LIST, 12, false);
-			DlgFont(hWnd, S_TITLE, 11, false);
-		}
+		SetFont(hWnd, L_LIST, GetMeiryoFontEx(12));
+		SetFont(hWnd, S_TITLE, GetMeiryoFontEx(11));
 
 		LvInsertColumn(hWnd, L_LIST, 0, L"Component", 515);
 		break;
@@ -5376,13 +5192,6 @@ UINT SwComponents(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wiz
 
 		if (c != NULL)
 		{
-			if (SwCheckOs(sw, c) == false)
-			{
-				// OS Check Failed
-				MsgBoxEx(hWnd, MB_ICONEXCLAMATION, _UU("SW_OS_FAILED"), c->Title);
-				break;
-			}
-
 			sw->CurrentComponent = c;
 
 			if (sw->CurrentComponent->SystemModeOnly == false || MsIsAdmin())
@@ -5550,7 +5359,7 @@ UINT SwModeDlg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wizard
 
 		if (sw->IsSystemMode)
 		{
-			if (MsIsVista() && MsIsAdmin() == false && sw->IsReExecForUac == false)
+			if (MsIsAdmin() == false && sw->IsReExecForUac == false)
 			{
 				// If UAC is available and this isn't invoked via UAC,
 				// give the user a chance to get administrator privileges on UAC start again
@@ -5631,11 +5440,13 @@ UINT SwWelcomeDlg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wiz
 		break;
 
 	case WM_WIZ_NEXT:
-		if (IsFileExistsW(L"@install_src.dat") == false)
+		if (MsIsKB3033929RequiredAndMissing())
 		{
-			// Vpnsetup.exe is launched from other than the installation source
-			MsgBoxEx(hWnd, MB_ICONSTOP, _UU("SW_NOT_INSTALL_SRC"));
-			break;
+			// KB3033929 is missing
+			if (MsgBoxEx(hWnd, MB_ICONINFORMATION | MB_OKCANCEL, _UU("SW_KB3033929_REQUIRED")) == IDCANCEL)
+			{
+				break;
+			}
 		}
 
 		if (sw->DoubleClickBlocker)
@@ -5647,33 +5458,25 @@ UINT SwWelcomeDlg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WIZARD *wiz
 
 		if (MsIsAdmin() == false)
 		{
-			if (MsIsVista())
+			if (sw->IsReExecForUac == false)
 			{
-				if (sw->IsReExecForUac == false)
+				// If there is no Admin privileges in Vista or later, attempt to acquire Admin rights by UAC first during the first run
+				if (SwReExecMyself(sw, NULL, true))
 				{
-					// If there is no Admin privileges in Vista or later, attempt to acquire Admin rights by UAC first during the first run
-					if (SwReExecMyself(sw, NULL, true))
-					{
-						// Terminate itself if it succeeds to start the child process
-						CloseWizard(wizard_page);
-						break;
-					}
-					else
-					{
-						// Jump to mode selection screen if it fails to start the
-						// child process (including user presses the cancel of UAC)
-						return D_SW_MODE;
-					}
+					// Terminate itself if it succeeds to start the child process
+					CloseWizard(wizard_page);
+					break;
 				}
 				else
 				{
-					// Jump to mode selection screen when the user don't have Admin rights after being activated by UAC
+					// Jump to mode selection screen if it fails to start the
+					// child process (including user presses the cancel of UAC)
 					return D_SW_MODE;
 				}
 			}
 			else
 			{
-				// Jump to the mode selection screen in the case of older than Vista
+				// Jump to mode selection screen when the user don't have Admin rights after being activated by UAC
 				return D_SW_MODE;
 			}
 		}
@@ -5756,9 +5559,6 @@ void SwUiMain(SW *sw)
 	GetCedarVersion(ver, sizeof(ver));
 	UniFormat(verstr, sizeof(verstr), _UU("SW_TITLE"), ver);
 
-	// DO NOT REMOVE THIS INDICATION !!!
-	UniStrCat(verstr, sizeof(verstr), L" - Customized Version");
-
 	w = NewWizard(ICO_SETUP, BMP_SELOGO49x49, verstr, sw);
 
 	w->CloseConfirmMsg = _UU("SW_EXIT_CONFIRM");
@@ -5781,10 +5581,7 @@ void SwUiMain(SW *sw)
 	AddWizardPage(w, NewWizardPage(D_SW_WEB1, SwWeb1, _UU("SW_WEB1_TITLE")));
 	AddWizardPage(w, NewWizardPage(D_SW_WEB2, SwWeb2, _UU("SW_WEB2_TITLE")));
 
-	if (MsIsVista())
-	{
-		w->IsAreoStyle = true;
-	}
+	w->IsAreoStyle = true;
 
 	if (sw->UninstallMode)
 	{
@@ -6055,48 +5852,6 @@ SW_COMPONENT *SwNewComponent(char *name, char *svc_name, UINT id, UINT icon, UIN
 	return c;
 }
 
-// Examine the OS requirements
-bool SwCheckOs(SW *sw, SW_COMPONENT *c)
-{
-	// Validate arguments
-	if (sw == NULL || c == NULL)
-	{
-		return false;
-	}
-
-	if (c->Id == SW_CMP_VPN_CLIENT)
-	{
-		OS_INFO *info = GetOsInfo();
-
-		if (OS_IS_WINDOWS_NT(info->OsType))
-		{
-			if (MsIsWin2000OrGreater() == false)
-			{
-				// It doesn't work with WinNT 4.0
-				return false;
-			}
-		}
-		else
-		{
-			if (GET_KETA(info->OsType, 100) <= 1)
-			{
-				// It doesn't work with Win95
-				return false;
-			}
-			else if (info->OsType == OSTYPE_WINDOWS_98)
-			{
-				if (EndWith(info->OsVersion, "A") == false)
-				{
-					// It doesn't work in Win98 First Edition
-					return false;
-				}
-			}
-		}
-	}
-
-	return true;
-}
-
 // Define the component
 void SwDefineComponents(SW *sw)
 {
@@ -6104,49 +5859,34 @@ void SwDefineComponents(SW *sw)
 	char *vpn_server_files[] =
 	{
 		"vpnserver.exe",
-		"vpnserver_x64.exe",
 		"vpnsmgr.exe",
-		"vpnsmgr_x64.exe",
 		"vpncmd.exe",
-		"vpncmd_x64.exe",
 		"hamcore.se2",
 	};
 	char *vpn_client_files[] =
 	{
 		"vpnclient.exe",
-		"vpnclient_x64.exe",
 		"vpncmgr.exe",
-		"vpncmgr_x64.exe",
 		"vpncmd.exe",
-		"vpncmd_x64.exe",
 		"hamcore.se2",
-		"vpninstall.exe",
-		"vpnweb.cab",
 	};
 	char *vpn_bridge_files[] =
 	{
 		"vpnbridge.exe",
-		"vpnbridge_x64.exe",
 		"vpnsmgr.exe",
-		"vpnsmgr_x64.exe",
 		"vpncmd.exe",
-		"vpncmd_x64.exe",
 		"hamcore.se2",
 	};
 	char *vpn_smgr_files[] =
 	{
 		"vpnsmgr.exe",
-		"vpnsmgr_x64.exe",
 		"vpncmd.exe",
-		"vpncmd_x64.exe",
 		"hamcore.se2",
 	};
 	char *vpn_cmgr_files[] =
 	{
 		"vpncmgr.exe",
-		"vpncmgr_x64.exe",
 		"vpncmd.exe",
-		"vpncmd_x64.exe",
 		"hamcore.se2",
 	};
 	// Validate arguments
@@ -6156,16 +5896,16 @@ void SwDefineComponents(SW *sw)
 	}
 
 	// VPN Server
-	c = SwNewComponent(SW_NAME_VPNSERVER, GC_SVC_NAME_VPNSERVER, SW_CMP_VPN_SERVER, ICO_VPNSERVER, 5, (MsIsX64() ? L"vpnserver_x64.exe" : L"vpnserver.exe"),
+	c = SwNewComponent(SW_NAME_VPNSERVER, GC_SVC_NAME_VPNSERVER, SW_CMP_VPN_SERVER, ICO_VPNSERVER, 5, L"vpnserver.exe",
 		SW_LONG_VPNSERVER, false, sizeof(vpn_server_files) / sizeof(char *), vpn_server_files,
-		(MsIsX64() ? L"vpnsmgr_x64.exe" : L"vpnsmgr.exe"), _UU("SW_RUN_TEXT_VPNSMGR"),
+		L"vpnsmgr.exe", _UU("SW_RUN_TEXT_VPNSMGR"),
 		old_msi_vpnserver, sizeof(old_msi_vpnserver) / sizeof(SW_OLD_MSI));
 	Add(sw->ComponentList, c);
 
 	// VPN Client
-	c = SwNewComponent(SW_NAME_VPNCLIENT, GC_SVC_NAME_VPNCLIENT, SW_CMP_VPN_CLIENT, ICO_VPN, 6, (MsIsX64() ? L"vpnclient_x64.exe" : L"vpnclient.exe"),
+	c = SwNewComponent(SW_NAME_VPNCLIENT, GC_SVC_NAME_VPNCLIENT, SW_CMP_VPN_CLIENT, ICO_VPN, 6, L"vpnclient.exe",
 		SW_LONG_VPNCLIENT, true, sizeof(vpn_client_files) / sizeof(char *), vpn_client_files,
-		(MsIsX64() ? L"vpncmgr_x64.exe" : L"vpncmgr.exe"), _UU("SW_RUN_TEXT_VPNCMGR"),
+		L"vpncmgr.exe", _UU("SW_RUN_TEXT_VPNCMGR"),
 		old_msi_vpnclient, sizeof(old_msi_vpnclient) / sizeof(SW_OLD_MSI));
 
 #ifdef	GC_ENABLE_VPNGATE
@@ -6174,23 +5914,23 @@ void SwDefineComponents(SW *sw)
 	Add(sw->ComponentList, c);
 
 	// VPN Bridge
-	c = SwNewComponent(SW_NAME_VPNBRIDGE, GC_SVC_NAME_VPNBRIDGE, SW_CMP_VPN_BRIDGE, ICO_CASCADE, 7, (MsIsX64() ? L"vpnbridge_x64.exe" : L"vpnbridge.exe"),
+	c = SwNewComponent(SW_NAME_VPNBRIDGE, GC_SVC_NAME_VPNBRIDGE, SW_CMP_VPN_BRIDGE, ICO_CASCADE, 7, L"vpnbridge.exe",
 		SW_LONG_VPNBRIDGE, false, sizeof(vpn_bridge_files) / sizeof(char *), vpn_bridge_files,
-		(MsIsX64() ? L"vpnsmgr_x64.exe" : L"vpnsmgr.exe"), _UU("SW_RUN_TEXT_VPNSMGR"),
+		L"vpnsmgr.exe", _UU("SW_RUN_TEXT_VPNSMGR"),
 		old_msi_vpnbridge, sizeof(old_msi_vpnbridge) / sizeof(SW_OLD_MSI));
 	Add(sw->ComponentList, c);
 
 	// VPN Server Manager (Tools Only)
 	c = SwNewComponent(SW_NAME_VPNSMGR, NULL, SW_CMP_VPN_SMGR, ICO_USER_ADMIN, 8, NULL,
 		SW_LONG_VPNSMGR, false, sizeof(vpn_smgr_files) / sizeof(char *), vpn_smgr_files,
-		(MsIsX64() ? L"vpnsmgr_x64.exe" : L"vpnsmgr.exe"), _UU("SW_RUN_TEXT_VPNSMGR"),
+		L"vpnsmgr.exe", _UU("SW_RUN_TEXT_VPNSMGR"),
 		NULL, 0);
 	Add(sw->ComponentList, c);
 
 	// VPN Client Manager (Tools Only)
 	c = SwNewComponent(SW_NAME_VPNCMGR, NULL, SW_CMP_VPN_CMGR, ICO_INTERNET, 9, NULL,
 		SW_LONG_VPNCMGR, false, sizeof(vpn_cmgr_files) / sizeof(char *), vpn_cmgr_files,
-		(MsIsX64() ? L"vpncmgr_x64.exe /remote" : L"vpncmgr.exe /remote"), _UU("SW_RUN_TEXT_VPNCMGR"),
+		L"vpncmgr.exe /remote", _UU("SW_RUN_TEXT_VPNCMGR"),
 		NULL, 0);
 	Add(sw->ComponentList, c);
 }
@@ -6417,6 +6157,7 @@ void SwParseCommandLine(SW *sw)
 		{"ISEASYINSTALLER", NULL, NULL, NULL, NULL, },
 		{"DISABLEAUTOIMPORT", NULL, NULL, NULL, NULL, },
 		{"ISWEBINSTALLER", NULL, NULL, NULL, NULL, },
+		{"SUINSTMODE", NULL, NULL, NULL, NULL, },
 	};
 	// Validate arguments
 	if (sw == NULL)
@@ -6444,6 +6185,7 @@ void SwParseCommandLine(SW *sw)
 			sw->LangNow = GetParamYes(o, "LANGNOW");
 			sw->SetLangAndReboot = GetParamYes(o, "SETLANGANDREBOOT");
 			sw->HideStartCommand = GetParamYes(o, "HIDESTARTCOMMAND");
+			sw->SuInstMode = GetParamYes(o, "SUINSTMODE");
 
 			// Special mode
 			if (sw->LanguageMode == false)
@@ -6514,6 +6256,15 @@ UINT SWExecMain()
 			sw->ExitCode = 0;
 		}
 	}
+	else if (sw->SuInstMode)
+	{
+		// SuInst mode
+		sw->ExitCode = 0;
+		if (SuInstallDriver(false) == false)
+		{
+			sw->ExitCode = SW_EXIT_CODE_INTERNAL_ERROR;
+		}
+	}
 	else
 	{
 		// Normal mode
@@ -6563,7 +6314,3 @@ UINT SWExecMain()
 
 
 
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/

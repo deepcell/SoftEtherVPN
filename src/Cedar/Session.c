@@ -1,87 +1,38 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Cedar Communication Module
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2014 Daiyuu Nobori.
-// Copyright (c) 2012-2014 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2014 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE IT IN OTHER COUNTRIES. IMPORTING THIS
-// SOFTWARE INTO OTHER COUNTRIES IS AT YOUR OWN RISK. SOME COUNTRIES
-// PROHIBIT ENCRYPTED COMMUNICATIONS. USING THIS SOFTWARE IN OTHER
-// COUNTRIES MIGHT BE RESTRICTED.
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
-
+// © 2020 Nokia
 
 // Session.c
 // Session Manager
 
-#include "CedarPch.h"
+#include "Session.h"
+
+#include "BridgeUnix.h"
+#include "BridgeWin32.h"
+#include "Client.h"
+#include "Connection.h"
+#include "Hub.h"
+#include "Link.h"
+#include "Nat.h"
+#include "Protocol.h"
+#include "SecureNAT.h"
+#include "Server.h"
+#include "UdpAccel.h"
+#include "VLanUnix.h"
+
+#include "Mayaqua/Internat.h"
+#include "Mayaqua/Kernel.h"
+#include "Mayaqua/Mayaqua.h"
+#include "Mayaqua/Memory.h"
+#include "Mayaqua/Microsoft.h"
+#include "Mayaqua/Object.h"
+#include "Mayaqua/Str.h"
+#include "Mayaqua/Table.h"
+#include "Mayaqua/TcpIp.h"
+#include "Mayaqua/Tick64.h"
+
+// TODO: Mayaqua should not depend on Cedar.
+#include "Cedar/WinUi.h"
 
 // Main routine of the session
 void SessionMain(SESSION *s)
@@ -107,11 +58,16 @@ void SessionMain(SESSION *s)
 	TRAFFIC t;
 	SOCK *msgdlg_sock = NULL;
 	SOCK *nicinfo_sock = NULL;
+	bool is_server_session = false;
+	bool lock_receive_blocks_queue = false;
+	UINT static_ip = 0;
+
 	// Validate arguments
 	if (s == NULL)
 	{
 		return;
 	}
+
 	Debug("SessionMain: %s\n", s->Name);
 
 	Notify(s, CLIENT_NOTIFY_ACCOUNT_CHANGED);
@@ -129,6 +85,19 @@ void SessionMain(SESSION *s)
 	policy = s->Policy;
 
 	// Initialize the packet adapter
+#ifdef	OS_WIN32
+	if (s->IsVPNClientAndVLAN_Win32)
+	{
+		MsBeginVLanCard();
+
+		if (MsIsVLanCardShouldStop())
+		{
+			err = ERR_SUSPENDING;
+			goto CLEANUP;
+		}
+	}
+#endif	// OS_WIN32
+
 	pa = s->PacketAdapter;
 	if (pa->Init(s) == false)
 	{
@@ -163,14 +132,14 @@ void SessionMain(SESSION *s)
 	s->LastCommTime = Tick64();
 	if (s->ServerMode == false)
 	{
-		s->NextConnectionTime = Tick64() + (UINT64)(s->ClientOption->AdditionalConnectionInterval * 1000);
+		s->NextConnectionTime = Tick64() + (UINT64)((UINT64)s->ClientOption->AdditionalConnectionInterval * (UINT64)1000);
 	}
 
-	s->NumConnectionsEatablished++;
+	s->NumConnectionsEstablished++;
 	s->CurrentConnectionEstablishTime = Tick64();
-	if (s->FirstConnectionEstablisiedTime == 0)
+	if (s->FirstConnectionEstablisiedTime == 0) /* !!! Do not correct the spelling to keep the backward protocol compatibility !!!  */
 	{
-		s->FirstConnectionEstablisiedTime = Tick64();
+		s->FirstConnectionEstablisiedTime = Tick64(); /* !!! Do not correct the spelling to keep the backward protocol compatibility !!!  */
 	}
 
 	if (s->ServerMode == false && s->Cedar->Client != NULL)
@@ -241,9 +210,14 @@ void SessionMain(SESSION *s)
 		}
 	}
 
+	is_server_session = s->ServerMode;
+
+	lock_receive_blocks_queue = s->LinkModeServer;
+
+	now = Tick64();
+
 	while (true)
 	{
-		now = Tick64();
 		Zero(&t, sizeof(t));
 
 
@@ -268,6 +242,16 @@ void SessionMain(SESSION *s)
 		}
 
 
+		if (is_server_session && s->LinkModeServer == false && s->SecureNATMode == false && s->BridgeMode == false && s->L3SwitchMode == false)
+		{
+			if (s->Hub != NULL && s->Hub->ForceDisableComm)
+			{
+				// Disconnect the session forcibly because the ForceDisableComm flag is set
+				err = ERR_SERVER_CANT_ACCEPT;
+				pa_fail = true;
+			}
+		}
+
 		if (s->InProcMode)
 		{
 			if (c->TubeSock == NULL || IsTubeConnected(c->TubeSock->SendTube) == false || IsTubeConnected(c->TubeSock->RecvTube) == false)
@@ -287,12 +271,21 @@ void SessionMain(SESSION *s)
 				pa_fail = true;
 			}
 		}
-
+		
 		// Chance of additional connection
-		ClientAdditionalConnectChance(s);
+		if (is_server_session == false)
+		{
+			if (GetGlobalServerFlag(GSF_DISABLE_SESSION_RECONNECT) == false)
+			{
+				ClientAdditionalConnectChance(s);
+			}
+		}
 
 		// Receive a block
 		ConnectionReceive(c, s->Cancel1, s->Cancel2);
+
+		// Get the current time
+		now = Tick64();
 
 		if (s->UseUdpAcceleration && s->UdpAccel != NULL && s->UdpAccel->FatalError)
 		{
@@ -302,8 +295,23 @@ void SessionMain(SESSION *s)
 			pa_fail = true;
 		}
 
+#ifdef	OS_WIN32
+		if (s->IsVPNClientAndVLAN_Win32)
+		{
+			if (MsIsVLanCardShouldStop())
+			{
+				// System is suspending
+				err = ERR_SUSPENDING;
+				pa_fail = true;
+			}
+		}
+#endif	// OS_WIN32
+
 		// Pass the received block to the PacketAdapter
-		LockQueue(c->ReceivedBlocks);
+		if (lock_receive_blocks_queue)
+		{
+			LockQueue(c->ReceivedBlocks);
+		}
 		{
 			BLOCK *b;
 			packet_put = false;
@@ -319,17 +327,40 @@ void SessionMain(SESSION *s)
 
 				update_hub_last_comm = true;
 
-				if (s->ServerMode == false && b->Size >= 14)
+				if (b->Size >= 14)
 				{
-					if (b->Buf[0] & 0x40)
+					UINT ip;
+					if( (ip = PrepareDHCPRequestForStaticIPv4( s, b )) != 0 )
 					{
-						t.Recv.BroadcastCount++;
-						t.Recv.BroadcastBytes += (UINT64)b->Size;
+						// Remember the static IP address to remove it from the leased IP address list later
+						static_ip = ip;
+					}
+
+					if (b->Buf[0] & 0x01)
+					{
+						if (is_server_session == false)
+						{
+							t.Recv.BroadcastCount++;
+							t.Recv.BroadcastBytes += (UINT64)b->Size;
+						}
+						else
+						{
+							t.Send.BroadcastCount++;
+							t.Send.BroadcastBytes += (UINT64)b->Size;
+						}
 					}
 					else
 					{
-						t.Recv.UnicastCount++;
-						t.Recv.UnicastBytes += (UINT64)b->Size;
+						if (is_server_session == false)
+						{
+							t.Recv.UnicastCount++;
+							t.Recv.UnicastBytes += (UINT64)b->Size;
+						}
+						else
+						{
+							t.Send.UnicastCount++;
+							t.Send.UnicastBytes += (UINT64)b->Size;
+						}
 					}
 				}
 
@@ -345,7 +376,7 @@ void SessionMain(SESSION *s)
 				Free(b);
 			}
 
-			if (packet_put || s->ServerMode)
+			if (true /* packet_put || is_server_session 2014.7.23 for optimizing */)
 			{
 				PROBE_DATA2("pa->PutPacket", NULL, 0);
 				if (pa->PutPacket(s, NULL, 0) == false)
@@ -356,10 +387,12 @@ void SessionMain(SESSION *s)
 				}
 			}
 		}
-		UnlockQueue(c->ReceivedBlocks);
+		if (lock_receive_blocks_queue)
+		{
+			UnlockQueue(c->ReceivedBlocks);
+		}
 
 		// Add the packet to be transmitted to SendBlocks by acquiring from PacketAdapter
-		LockQueue(c->SendBlocks);
 		{
 			UINT i, max_num = MAX_SEND_SOCKET_QUEUE_NUM;
 			i = 0;
@@ -386,35 +419,75 @@ void SessionMain(SESSION *s)
 				else
 				{
 					bool priority;
+					QUEUE *q = NULL;
 					// Buffering
-					if (s->ServerMode == false && packet_size >= 14)
+					if (packet_size >= 14)
 					{
 						UCHAR *buf = (UCHAR *)packet;
 						if (buf[0] & 0x01)
 						{
-							t.Send.BroadcastCount++;
-							t.Send.BroadcastBytes += (UINT64)packet_size;
+							if (is_server_session == false)
+							{
+								t.Send.BroadcastCount++;
+								t.Send.BroadcastBytes += (UINT64)packet_size;
+							}
+							else
+							{
+								t.Recv.BroadcastCount++;
+								t.Recv.BroadcastBytes += (UINT64)packet_size;
+							}
 						}
 						else
 						{
-							t.Send.UnicastCount++;
-							t.Send.UnicastBytes += (UINT64)packet_size;
+							if (is_server_session == false)
+							{
+								t.Send.UnicastCount++;
+								t.Send.UnicastBytes += (UINT64)packet_size;
+							}
+							else
+							{
+								t.Recv.UnicastCount++;
+								t.Recv.UnicastBytes += (UINT64)packet_size;
+							}
 						}
 					}
 					priority = IsPriorityHighestPacketForQoS(packet, packet_size);
+
 					b = NewBlock(packet, packet_size, s->UseCompress ? 1 : 0);
 					b->PriorityQoS = priority;
-					c->CurrentSendQueueSize += b->Size;
 
 					if (b->PriorityQoS && c->Protocol == CONNECTION_TCP && s->QoS)
 					{
-						InsertQueue(c->SendBlocks2, b);
+						q = c->SendBlocks2;
 					}
 					else
 					{
-						InsertQueue(c->SendBlocks, b);
+						q = c->SendBlocks;
+					}
+
+					if (q->num_item > MAX_STORED_QUEUE_NUM)
+					{
+						q = NULL;
+					}
+
+					if (q != NULL)
+					{
+						c->CurrentSendQueueSize += b->Size;
+						InsertQueue(q, b);
+					}
+					else
+					{
+						FreeBlock(b);
 					}
 				}
+
+				if ((i % 16) == 0)
+				{
+					int diff = ((int)c->CurrentSendQueueSize) - ((int)c->LastPacketQueueSize);
+					CedarAddCurrentTcpQueueSize(c->Cedar, diff);
+					c->LastPacketQueueSize = c->CurrentSendQueueSize;
+				}
+
 				i++;
 				if (i >= max_num)
 				{
@@ -422,15 +495,23 @@ void SessionMain(SESSION *s)
 				}
 			}
 		}
-		UnlockQueue(c->SendBlocks);
 
 		AddTrafficForSession(s, &t);
 
+		if (true)
+		{
+			int diff = ((int)c->CurrentSendQueueSize) - ((int)c->LastPacketQueueSize);
+			CedarAddCurrentTcpQueueSize(c->Cedar, diff);
+			c->LastPacketQueueSize = c->CurrentSendQueueSize;
+		}
+
+		now = Tick64();
+
 		// Send a block
-		ConnectionSend(c);
+		ConnectionSend(c, now);
 
 		// Determine the automatic disconnection
-		if (auto_disconnect_tick != 0 && auto_disconnect_tick <= Tick64())
+		if (auto_disconnect_tick != 0 && auto_disconnect_tick <= now)
 		{
 			err = ERR_AUTO_DISCONNECTED;
 			s->CurrentRetryCount = INFINITE;
@@ -446,9 +527,6 @@ void SessionMain(SESSION *s)
 			}
 			break;
 		}
-
-		// Get the current time
-		now = Tick64();
 
 		// Increments the number of logins for user object and Virtual HUB object.
 		// (It's incremented only if the time 30 seconds passed after connection.
@@ -468,7 +546,7 @@ void SessionMain(SESSION *s)
 			}
 		}
 
-		if (s->ServerMode)
+		if (is_server_session)
 		{
 			HUB *hub;
 
@@ -483,15 +561,11 @@ void SessionMain(SESSION *s)
 
 			if (hub != NULL)
 			{
-				Lock(hub->lock);
+				if ((hub->LastIncrementTraffic + INCREMENT_TRAFFIC_INTERVAL) <= now)
 				{
-					if ((hub->LastIncrementTraffic + INCREMENT_TRAFFIC_INTERVAL) <= now)
-					{
-						IncrementHubTraffic(s->Hub);
-						hub->LastIncrementTraffic = now;
-					}
+					hub->LastIncrementTraffic = now;
+					IncrementHubTraffic(s->Hub);
 				}
-				Unlock(hub->lock);
 			}
 		}
 
@@ -506,7 +580,22 @@ void SessionMain(SESSION *s)
 				WHERE;
 			}
 
-			if (s->ServerMode == false && s->ClientOption != NULL && s->ClientOption->ConnectionDisconnectSpan == 0)
+			if (c->Protocol == CONNECTION_TCP)
+			{
+				if (GetGlobalServerFlag(GSF_DISABLE_SESSION_RECONNECT))
+				{
+					UINT num_tcp_connections = Count(c->CurrentNumConnection);
+
+					if (num_tcp_connections == 0)
+					{
+						// All TCP connections are disconnected.
+						// Terminate the session immediately.
+						timeouted = true;
+					}
+				}
+			}
+
+			if (is_server_session == false && s->ClientOption != NULL && s->ClientOption->ConnectionDisconnectSpan == 0)
 			{
 				if (LIST_NUM(s->Connection->Tcp->TcpSockList) < s->MaxConnection)
 				{
@@ -550,6 +639,9 @@ CLEANUP:
 		// Update the user information
 		IncrementUserTraffic(s->Hub, s->UserNameReal, s);
 
+		// Clear the DHCP lease record if assigned as a static client IP address
+		ClearDHCPLeaseRecordForIPv4(s, static_ip);
+
 		DelSession(s->Hub, s);
 	}
 
@@ -558,7 +650,14 @@ CLEANUP:
 
 	if (s->Connection)
 	{
+		int diff =  -((int)s->Connection->LastTcpQueueSize);
+		s->Connection->LastTcpQueueSize = 0;
 		s->Connection->Halt = true;
+		CedarAddCurrentTcpQueueSize(s->Cedar, diff);
+
+		diff = ((int)c->CurrentSendQueueSize) - ((int)c->LastPacketQueueSize);
+		CedarAddCurrentTcpQueueSize(c->Cedar, diff);
+		c->LastPacketQueueSize = c->CurrentSendQueueSize;
 	}
 
 	// Release the packet adapter
@@ -566,6 +665,13 @@ CLEANUP:
 	{
 		pa->Free(s);
 	}
+
+#ifdef	OS_WIN32
+	if (s->IsVPNClientAndVLAN_Win32)
+	{
+		MsEndVLanCard();
+	}
+#endif	// OS_WIN32
 
 	if (s->ServerMode == false)
 	{
@@ -746,7 +852,7 @@ void IncrementUserTraffic(HUB *hub, char *username, SESSION *s)
 	Unlock(s->TrafficLock);
 }
 
-// Cummulate the traffic information of the connection
+// Cumulate the traffic information of the connection
 void AddTrafficForSession(SESSION *s, TRAFFIC *t)
 {
 	HUB *h;
@@ -807,7 +913,7 @@ void ClientAdditionalConnectChance(SESSION *s)
 		return;
 	}
 
-	if (s->IsRUDPSession && (s->Connection->AdditionalConnectionFailedCounter > MAX_ADDITONAL_CONNECTION_FAILED_COUNTER))
+	if (s->IsRUDPSession && (s->Connection->AdditionalConnectionFailedCounter > MAX_ADDITIONAL_CONNECTION_FAILED_COUNTER))
 	{
 		// Not to make a large amount of repeated connection retry within a certain time in the case of R-UDP session
 		return;
@@ -833,7 +939,7 @@ void ClientAdditionalConnectChance(SESSION *s)
 				(s->NextConnectionTime <= now))
 			{
 				// Start the work to put an additional connection
-				s->NextConnectionTime = now + (UINT64)(s->ClientOption->AdditionalConnectionInterval * 1000);
+				s->NextConnectionTime = now + ((UINT64)s->ClientOption->AdditionalConnectionInterval * (UINT64)1000);
 				SessionAdditionalConnect(s);
 			}
 			else
@@ -1088,21 +1194,13 @@ void StopSessionEx(SESSION *s, bool no_wait)
 	// Event
 	Set(s->HaltEvent);
 
-	if (s->ServerMode == false)
+	// Server and client mode
+	if (s->Connection)
 	{
-		// Client mode
-		if (s->Connection)
-		{
-			StopConnection(s->Connection, no_wait);
-		}
-	}
-	else
-	{
-		// Server mode
-		if (s->Connection)
-		{
-			StopConnection(s->Connection, no_wait);
-		}
+		CONNECTION *c = s->Connection;
+		AddRef(c->ref);
+		StopConnection(c, no_wait);
+		ReleaseConnection(c);
 	}
 
 	// Wait until the stop
@@ -1152,6 +1250,9 @@ void CleanupSession(SESSION *s)
 	// Release the client connection options
 	if (s->ClientOption != NULL)
 	{
+#ifdef OS_UNIX
+		UnixVLanSetState(s->ClientOption->DeviceName, false);
+#endif
 		Free(s->ClientOption);
 	}
 
@@ -1227,6 +1328,8 @@ void CleanupSession(SESSION *s)
 
 	DeleteCounter(s->LoggingRecordCount);
 
+	ReleaseSharedBuffer(s->IpcSessionSharedBuffer);
+
 	Free(s);
 }
 
@@ -1278,13 +1381,12 @@ void ClientThread(THREAD *t, void *param)
 	bool no_save_password = false;
 	bool is_vpngate_connection = false;
 	CEDAR *cedar;
+	bool num_active_sessions_incremented = false;
 	// Validate arguments
 	if (t == NULL || param == NULL)
 	{
 		return;
 	}
-
-	CiIncrementNumActiveSessions();
 
 	Debug("ClientThread 0x%x Started.\n", t);
 
@@ -1292,6 +1394,13 @@ void ClientThread(THREAD *t, void *param)
 	AddRef(s->ref);
 	s->Thread = t;
 	AddRef(t->ref);
+
+	if (s->LinkModeClient == false)
+	{
+		CiIncrementNumActiveSessions();
+		num_active_sessions_incremented = true;
+	}
+
 	NoticeThreadInit(t);
 
 	cedar = s->Cedar;
@@ -1313,6 +1422,14 @@ void ClientThread(THREAD *t, void *param)
 
 	while (true)
 	{
+		Zero(&s->ServerIP_CacheForNextConnect, sizeof(IP));
+
+		if (s->Link != NULL && ((*s->Link->StopAllLinkFlag) || s->Link->Halting))
+		{
+			s->Err = ERR_USER_CANCEL;
+			break;
+		}
+
 		CLog(s->Cedar->Client, "LC_CONNECT_1", s->ClientOption->AccountName, s->CurrentRetryCount + 1);
 		if (s->LinkModeClient && s->Link != NULL)
 		{
@@ -1341,7 +1458,9 @@ void ClientThread(THREAD *t, void *param)
 
 		CLog(s->Cedar->Client, "LC_CONNECT_ERROR", s->ClientOption->AccountName,
 			GetUniErrorStr(s->Err), s->Err);
-
+#ifdef OS_UNIX
+		UnixVLanSetState(s->ClientOption->DeviceName, false);
+#endif
 		if (s->LinkModeClient && s->Link != NULL)
 		{
 			HLog(s->Link->Hub, "LH_CONNECT_ERROR", s->ClientOption->AccountName,
@@ -1393,6 +1512,21 @@ void ClientThread(THREAD *t, void *param)
 		if (use_password_dlg == false)
 		{
 			UINT retry_interval = s->RetryInterval;
+
+			if (s->LinkModeClient)
+			{
+				UINT current_num_links = Count(s->Cedar->CurrentActiveLinks);
+				UINT max_retry_interval = MAX(1000 * current_num_links, retry_interval);
+
+				retry_interval += retry_interval * MIN(s->CurrentRetryCount, 1000);
+				retry_interval = MIN(retry_interval, max_retry_interval);
+
+				// On the cascade client, adjust the retry_interval. (+/- 20%)
+				if (retry_interval >= 1000 && retry_interval <= (60 * 60 * 1000))
+				{
+					retry_interval = (retry_interval * 8 / 10) + (Rand32() % (retry_interval * 4 / 10));
+				}
+			}
 
 			if (s->Err == ERR_HUB_IS_BUSY || s->Err == ERR_LICENSE_ERROR ||
 				s->Err == ERR_HUB_STOPPING || s->Err == ERR_TOO_MANY_USER_SESSION)
@@ -1641,24 +1775,10 @@ SKIP:
 
 	ReleaseSession(s);
 
-	CiDecrementNumActiveSessions();
-}
-
-// Name comparison of sessions
-int CompareSession(void *p1, void *p2)
-{
-	SESSION *s1, *s2;
-	if (p1 == NULL || p2 == NULL)
+	if (num_active_sessions_incremented)
 	{
-		return 0;
+		CiDecrementNumActiveSessions();
 	}
-	s1 = *(SESSION **)p1;
-	s2 = *(SESSION **)p2;
-	if (s1 == NULL || s2 == NULL)
-	{
-		return 0;
-	}
-	return StrCmpi(s1->Name, s2->Name);
 }
 
 // Create an RPC session
@@ -1782,6 +1902,13 @@ SESSION *NewClientSessionEx(CEDAR *cedar, CLIENT_OPTION *option, CLIENT_AUTH *au
 	s->ClientOption = Malloc(sizeof(CLIENT_OPTION));
 	Copy(s->ClientOption, option, sizeof(CLIENT_OPTION));
 
+	if (GetGlobalServerFlag(GSF_DISABLE_SESSION_RECONNECT))
+	{
+		s->ClientOption->DisableQoS = true;
+		s->ClientOption->MaxConnection = 1;
+		s->ClientOption->HalfConnection = false;
+	}
+
 	s->MaxConnection = option->MaxConnection;
 	s->UseEncrypt = option->UseEncrypt;
 	s->UseCompress = option->UseCompress;
@@ -1795,9 +1922,15 @@ SESSION *NewClientSessionEx(CEDAR *cedar, CLIENT_OPTION *option, CLIENT_AUTH *au
 
 	// Hold whether the virtual LAN card is used in client mode
 	s->ClientModeAndUseVLan = (StrLen(s->ClientOption->DeviceName) == 0) ? false : true;
+
 	if (s->ClientOption->NoRoutingTracking)
 	{
 		s->ClientModeAndUseVLan = false;
+	}
+
+	if (pa->Id == PACKET_ADAPTER_ID_VLAN_WIN32)
+	{
+		s->IsVPNClientAndVLAN_Win32 = true;
 	}
 
 	if (StrLen(option->DeviceName) == 0)
@@ -1805,12 +1938,6 @@ SESSION *NewClientSessionEx(CEDAR *cedar, CLIENT_OPTION *option, CLIENT_AUTH *au
 		// NAT mode
 		s->ClientModeAndUseVLan = false;
 		s->VirtualHost = true;
-	}
-
-	if (OS_IS_WINDOWS_9X(GetOsInfo()->OsType))
-	{
-		// Prohibit the half-duplex mode in the case of Win9x
-		s->ClientOption->HalfConnection = false;
 	}
 
 	// Copy the client authentication data
@@ -1822,10 +1949,17 @@ SESSION *NewClientSessionEx(CEDAR *cedar, CLIENT_OPTION *option, CLIENT_AUTH *au
 	{
 		s->ClientAuth->ClientX = CloneX(s->ClientAuth->ClientX);
 	}
-	if (s->ClientAuth->ClientK != NULL)
-	{
-		s->ClientAuth->ClientK = CloneK(s->ClientAuth->ClientK);
-	}
+  if (s->ClientAuth->ClientK != NULL)
+  {
+    if (s->ClientAuth->AuthType != CLIENT_AUTHTYPE_OPENSSLENGINE)
+    {
+      s->ClientAuth->ClientK = CloneK(s->ClientAuth->ClientK);
+    }
+    else
+    {
+      s->ClientAuth->ClientK = OpensslEngineToK(s->ClientAuth->OpensslEnginePrivateKeyName, s->ClientAuth->OpensslEngineName);
+    }
+  }
 
 	if (StrCmpi(s->ClientOption->DeviceName, LINK_DEVICE_NAME) == 0)
 	{
@@ -1873,52 +2007,6 @@ SESSION *NewClientSessionEx(CEDAR *cedar, CLIENT_OPTION *option, CLIENT_AUTH *au
 SESSION *NewClientSession(CEDAR *cedar, CLIENT_OPTION *option, CLIENT_AUTH *auth, PACKET_ADAPTER *pa)
 {
 	return NewClientSessionEx(cedar, option, auth, pa, NULL);
-}
-
-// Get the session from the 32bit session key
-SESSION *GetSessionFromKey32(CEDAR *cedar, UINT key32)
-{
-	HUB *h;
-	UINT i, j;
-	// Validate arguments
-	if (cedar == NULL)
-	{
-		return NULL;
-	}
-
-	LockList(cedar->HubList);
-	{
-		for (i = 0;i < LIST_NUM(cedar->HubList);i++)
-		{
-			h = LIST_DATA(cedar->HubList, i);
-			LockList(h->SessionList);
-			{
-				for (j = 0;j < LIST_NUM(h->SessionList);j++)
-				{
-					SESSION *s = LIST_DATA(h->SessionList, j);
-					Lock(s->lock);
-					{
-						if (s->SessionKey32 == key32)
-						{
-							// Session found
-							AddRef(s->ref);
-
-							// Unlock
-							Unlock(s->lock);
-							UnlockList(h->SessionList);
-							UnlockList(cedar->HubList);
-							return s;
-						}
-					}
-					Unlock(s->lock);
-				}
-			}
-			UnlockList(h->SessionList);
-		}
-	}
-	UnlockList(cedar->HubList);
-
-	return NULL;
 }
 
 // Get the session from the session key
@@ -1990,9 +2078,9 @@ void if_free(SESSION *s);
 // Create a server session
 SESSION *NewServerSession(CEDAR *cedar, CONNECTION *c, HUB *h, char *username, POLICY *policy)
 {
-	return NewServerSessionEx(cedar, c, h, username, policy, false);
+	return NewServerSessionEx(cedar, c, h, username, policy, false, NULL);
 }
-SESSION *NewServerSessionEx(CEDAR *cedar, CONNECTION *c, HUB *h, char *username, POLICY *policy, bool inproc_mode)
+SESSION *NewServerSessionEx(CEDAR *cedar, CONNECTION *c, HUB *h, char *username, POLICY *policy, bool inproc_mode, UCHAR *ipc_mac_address)
 {
 	SESSION *s;
 	char name[MAX_SIZE];
@@ -2050,6 +2138,19 @@ SESSION *NewServerSessionEx(CEDAR *cedar, CONNECTION *c, HUB *h, char *username,
 		{
 			Format(name, sizeof(name), "SID-%s-[%s]-%u", user_name_upper, c->InProcPrefix, Inc(h->SessionCounter));
 		}
+
+		if (h->IsVgsHub || h->IsVgsSuperRelayHub)
+		{
+			UCHAR rand[5];
+			char tmp[32];
+
+			Rand(rand, sizeof(rand));
+
+			BinToStr(tmp, sizeof(tmp), rand, sizeof(rand));
+
+			StrCat(name, sizeof(name), "-");
+			StrCat(name, sizeof(name), tmp);
+		}
 	}
 	else
 	{
@@ -2100,45 +2201,55 @@ SESSION *NewServerSessionEx(CEDAR *cedar, CONNECTION *c, HUB *h, char *username,
 	// Generate a MAC address for IPC
 	if (s->InProcMode)
 	{
-		char tmp[MAX_SIZE];
-		char machine[MAX_SIZE];
-		UCHAR hash[SHA1_SIZE];
+		if (ipc_mac_address != NULL)
+		{
+			Copy(s->IpcMacAddress, ipc_mac_address, 6);
+		}
+		else
+		{
+			char tmp[MAX_SIZE];
+			char machine[MAX_SIZE];
+			UCHAR hash[SHA1_SIZE];
 
-		GetMachineName(machine, sizeof(machine));
+			GetMachineName(machine, sizeof(machine));
 
-		Format(tmp, sizeof(tmp), "%s@%s@%u", machine, h->Name, s->UniqueId);
+			Format(tmp, sizeof(tmp), "%s@%s@%u", machine, h->Name, s->UniqueId);
 
-		StrUpper(tmp);
-		Trim(tmp);
+			StrUpper(tmp);
+			Trim(tmp);
 
-		Hash(hash, tmp, StrLen(tmp), true);
+			Sha0(hash, tmp, StrLen(tmp));
 
-		s->IpcMacAddress[0] = 0xCA;
-		s->IpcMacAddress[1] = hash[1];
-		s->IpcMacAddress[2] = hash[2];
-		s->IpcMacAddress[3] = hash[3];
-		s->IpcMacAddress[4] = hash[4];
-		s->IpcMacAddress[5] = hash[5];
+			s->IpcMacAddress[0] = 0xCA;
+			s->IpcMacAddress[1] = hash[1];
+			s->IpcMacAddress[2] = hash[2];
+			s->IpcMacAddress[3] = hash[3];
+			s->IpcMacAddress[4] = hash[4];
+			s->IpcMacAddress[5] = hash[5];
 
-		MacToStr(tmp, sizeof(tmp), s->IpcMacAddress);
-		Debug("MAC Address for IPC: %s\n", tmp);
+			MacToStr(tmp, sizeof(tmp), s->IpcMacAddress);
+			Debug("MAC Address for IPC: %s\n", tmp);
+		}
 	}
 
 	return s;
 }
 
-// Display the session key for debugging
-void DebugPrintSessionKey(UCHAR *session_key)
+// Check whether the specified MAC address is IPC address
+bool IsIpcMacAddress(UCHAR *mac)
 {
-	char tmp[MAX_SIZE];
 	// Validate arguments
-	if (session_key == NULL)
+	if (mac == NULL)
 	{
-		return;
+		return false;
 	}
 
-	Bit160ToStr(tmp, session_key);
-	Debug("SessionKey: %s\n", tmp);
+	if (mac[0] == 0xCA)
+	{
+		return true;
+	}
+
+	return false;
 }
 
 // Display the status on the client
@@ -2236,7 +2347,140 @@ void Notify(SESSION *s, UINT code)
 }
 
 
+UINT PrepareDHCPRequestForStaticIPv4(SESSION *s, BLOCK *b)
+{
+	PKT *pkt = NULL;
+	DHCPV4_HEADER *dhcp = NULL;
+	UCHAR *data = NULL;
+	UINT size = 0;
+	UINT dhcp_header_size = 0;
+	UINT dhcp_data_offset = 0;
+	UINT magic_cookie = Endian32(DHCP_MAGIC_COOKIE);
+	DHCP_OPTION_LIST *opt = NULL;
+	USER *user = NULL;
+	UINT ret_ip = 0;
 
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/
+	if ((s->Username == NULL) || (StrLen(s->Username) == 0) || (StrCmpi(s->Username, SNAT_USER_NAME_PRINT) == 0) ||
+		(StrCmpi( s->Username, BRIDGE_USER_NAME_PRINT) == 0) || (StrCmpi(s->Username, LINK_USER_NAME_PRINT) == 0))
+	{
+		return ret_ip;
+	}
+
+	pkt = ParsePacket(b->Buf, b->Size);
+	if (pkt == NULL)
+	{
+		return ret_ip;
+	}
+
+	if (pkt->TypeL3 == L3_IPV4 && pkt->TypeL4 == L4_UDP && pkt->TypeL7 == L7_DHCPV4)
+	{
+		if (pkt->L7.DHCPv4Header->OpCode != 1)
+		{
+			goto CLEANUP_TP;
+		}
+
+		dhcp = pkt->L7.DHCPv4Header;
+		dhcp_header_size = sizeof(DHCPV4_HEADER);
+		dhcp_data_offset = (UINT)(((UCHAR *)pkt->L7.DHCPv4Header) - ((UCHAR *)pkt->MacHeader) + dhcp_header_size);
+		data = ((UCHAR *)dhcp) + dhcp_header_size;
+		size = pkt->PacketSize - dhcp_data_offset;
+
+		if (dhcp_header_size < 5)
+		{
+			goto CLEANUP_TP;
+		}
+
+		// Search for Magic Cookie
+		while (size >= 5)
+		{
+			if (Cmp(data, &magic_cookie, sizeof(magic_cookie)) == 0)
+			{
+				// Found
+				data += 4;
+				size -= 4;
+				opt = ParseDhcpOptionList(data, size);
+				break;
+			}
+
+			++data;
+			--size;
+		}
+
+		if (opt == NULL)
+		{
+			goto CLEANUP_TP;
+		}
+
+		if (opt->Opcode == DHCP_DISCOVER || opt->Opcode == DHCP_REQUEST)
+		{
+			if (s->Hub != NULL)
+			{
+				user = AcGetUser( s->Hub, s->Username );
+				if (user != NULL)
+				{
+					dhcp->ServerIP = GetUserIPv4AddressFromUserNote32(user->Note);
+					ReleaseUser(user);
+					if (s->Hub->SecureNAT != NULL && s->Hub->SecureNAT->Nat != NULL)
+					{
+						VH *v = s->Hub->SecureNAT->Nat->Virtual;
+						if (v != NULL && v->UseDhcp == true && v->DhcpLeaseList != NULL)
+						{
+							DHCP_LEASE *d = SearchDhcpLeaseByIp(v, dhcp->ServerIP);
+
+							// The given static IP address is not used - it's OK
+							if (d == NULL)
+							{
+								ret_ip = dhcp->ServerIP;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+CLEANUP_TP:
+	if (opt != NULL)
+	{
+		Free(opt);
+	}
+
+	if (pkt != NULL)
+	{
+		FreePacket(pkt);
+	}
+
+	return ret_ip;
+}
+
+void ClearDHCPLeaseRecordForIPv4(SESSION *s, UINT static_ip)
+{
+	if (s == NULL || static_ip == 0)
+	{
+		return;
+	}
+
+	if (s->Hub == NULL || s->Hub->SecureNAT == NULL || s->Hub->SecureNAT->Nat == NULL)
+	{
+		return;
+	}
+
+	VH *v = s->Hub->SecureNAT->Nat->Virtual;
+	if (v == NULL || v->DhcpLeaseList == NULL)
+	{
+		return;
+	}
+
+	DHCP_LEASE *d = SearchDhcpLeaseByIp(v, static_ip);
+	if (d == NULL)
+	{
+		return;
+	}
+
+	LockList(v->DhcpLeaseList);
+	{
+		FreeDhcpLease(d);
+		Delete(v->DhcpLeaseList, d);
+	}
+	UnlockList( v->DhcpLeaseList);
+}

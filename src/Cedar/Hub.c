@@ -1,87 +1,39 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Cedar Communication Module
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2014 Daiyuu Nobori.
-// Copyright (c) 2012-2014 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2014 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE IT IN OTHER COUNTRIES. IMPORTING THIS
-// SOFTWARE INTO OTHER COUNTRIES IS AT YOUR OWN RISK. SOME COUNTRIES
-// PROHIBIT ENCRYPTED COMMUNICATIONS. USING THIS SOFTWARE IN OTHER
-// COUNTRIES MIGHT BE RESTRICTED.
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
 
 
 // Hub.c
 // Virtual HUB module
 
-#include "CedarPch.h"
+#include "Hub.h"
+
+#include "Admin.h"
+#include "Bridge.h"
+#include "Connection.h"
+#include "Link.h"
+#include "Nat.h"
+#include "NativeStack.h"
+#include "Protocol.h"
+#include "Radius.h"
+#include "SecureNAT.h"
+#include "Server.h"
+
+#include "Mayaqua/Cfg.h"
+#include "Mayaqua/FileIO.h"
+#include "Mayaqua/Internat.h"
+#include "Mayaqua/Memory.h"
+#include "Mayaqua/Object.h"
+#include "Mayaqua/Str.h"
+#include "Mayaqua/Table.h"
+#include "Mayaqua/TcpIp.h"
+#include "Mayaqua/Tick64.h"
+
+#define GetHubAdminOptionDataAndSet(ao, name, dest) \
+	value = GetHubAdminOptionData(ao, name);        \
+	if (value != INFINITE)                          \
+	{                                               \
+		dest = value;                               \
+	}
 
 static UCHAR broadcast[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 static char vgs_ua_str[9] = {0};
@@ -135,6 +87,108 @@ ADMIN_OPTION admin_options[] =
 };
 
 UINT num_admin_options = sizeof(admin_options) / sizeof(ADMIN_OPTION);
+
+
+// Create an EAP client for the specified Virtual Hub
+EAP_CLIENT *HubNewEapClient(CEDAR *cedar, char *hubname, char *client_ip_str, char *username, char *vpn_protocol_state_str)
+{
+	HUB *hub = NULL;
+	EAP_CLIENT *ret = NULL;
+	char radius_servers[MAX_PATH] = {0};
+	UINT radius_port = 0;
+	UINT radius_retry_interval = 0;
+	char radius_secret[MAX_PATH] = {0};
+	char radius_suffix_filter[MAX_PATH] = {0};
+	if (cedar == NULL || hubname == NULL || client_ip_str == NULL || username == NULL)
+	{
+		return NULL;
+	}
+
+	// Find the Virtual Hub
+	LockHubList(cedar);
+	{
+		hub = GetHub(cedar, hubname);
+	}
+	UnlockHubList(cedar);
+
+	if (hub != NULL)
+	{
+		if (GetRadiusServerEx2(hub, radius_servers, sizeof(radius_servers), &radius_port, radius_secret,
+			sizeof(radius_secret), &radius_retry_interval, radius_suffix_filter, sizeof(radius_suffix_filter)))
+		{
+			bool use_peap = hub->RadiusUsePeapInsteadOfEap;
+
+			if (IsEmptyStr(radius_suffix_filter) || EndWith(username, radius_suffix_filter))
+			{
+				TOKEN_LIST *radius_servers_list = ParseToken(radius_servers, " ,;\t");
+
+				if (radius_servers_list != NULL && radius_servers_list->NumTokens >= 1)
+				{
+					// Try for each of RADIUS servers
+					UINT i;
+					bool finish = false;
+
+					for (i = 0;i < radius_servers_list->NumTokens;i++)
+					{
+						EAP_CLIENT *eap;
+						IP ip;
+
+						if (GetIP(&ip, radius_servers_list->Token[i]))
+						{
+							eap = NewEapClient(&ip, radius_port, radius_secret, radius_retry_interval,
+								RADIUS_INITIAL_EAP_TIMEOUT, client_ip_str, username, hubname);
+
+							if (eap != NULL)
+							{
+								if (IsEmptyStr(vpn_protocol_state_str) == false)
+								{
+									StrCpy(eap->In_VpnProtocolState, sizeof(eap->In_VpnProtocolState), vpn_protocol_state_str);
+								}
+
+								if (use_peap == false)
+								{
+									// EAP
+									if (EapClientSendMsChapv2AuthRequest(eap))
+									{
+										eap->GiveupTimeout = RADIUS_RETRY_TIMEOUT;
+										ret = eap;
+										finish = true;
+									}
+								}
+								else
+								{
+									// PEAP
+									if (PeapClientSendMsChapv2AuthRequest(eap))
+									{
+										eap->GiveupTimeout = RADIUS_RETRY_TIMEOUT;
+										ret = eap;
+										finish = true;
+									}
+								}
+
+								if (finish == false)
+								{
+									ReleaseEapClient(eap);
+								}
+							}
+						}
+
+						if (finish)
+						{
+							break;
+						}
+					}
+				}
+
+				FreeToken(radius_servers_list);
+			}
+		}
+	}
+
+	ReleaseHub(hub);
+
+	return ret;
+}
 
 // Create a user list
 LIST *NewUserList()
@@ -490,23 +544,6 @@ UINT GetHubAdminOptionData(RPC_ADMIN_OPTION *ao, char *name)
 
 	return INFINITE;
 }
-void GetHubAdminOptionDataAndSet(RPC_ADMIN_OPTION *ao, char *name, UINT *dest)
-{
-	UINT value;
-	// Validate arguments
-	if (ao == NULL || name == NULL || dest == NULL)
-	{
-		return;
-	}
-
-	value = GetHubAdminOptionData(ao, name);
-	if (value == INFINITE)
-	{
-		return;
-	}
-
-	*dest = value;
-}
 
 // Set the contents of the HUB_OPTION based on the data
 void DataToHubOptionStruct(HUB_OPTION *o, RPC_ADMIN_OPTION *ao)
@@ -517,52 +554,66 @@ void DataToHubOptionStruct(HUB_OPTION *o, RPC_ADMIN_OPTION *ao)
 		return;
 	}
 
-	GetHubAdminOptionDataAndSet(ao, "NoAddressPollingIPv4", &o->NoArpPolling);
-	GetHubAdminOptionDataAndSet(ao, "NoAddressPollingIPv6", &o->NoIPv6AddrPolling);
-	GetHubAdminOptionDataAndSet(ao, "NoIpTable", &o->NoIpTable);
-	GetHubAdminOptionDataAndSet(ao, "NoMacAddressLog", &o->NoMacAddressLog);
-	GetHubAdminOptionDataAndSet(ao, "ManageOnlyPrivateIP", &o->ManageOnlyPrivateIP);
-	GetHubAdminOptionDataAndSet(ao, "ManageOnlyLocalUnicastIPv6", &o->ManageOnlyLocalUnicastIPv6);
-	GetHubAdminOptionDataAndSet(ao, "DisableIPParsing", &o->DisableIPParsing);
-	GetHubAdminOptionDataAndSet(ao, "YieldAfterStorePacket", &o->YieldAfterStorePacket);
-	GetHubAdminOptionDataAndSet(ao, "NoSpinLockForPacketDelay", &o->NoSpinLockForPacketDelay);
-	GetHubAdminOptionDataAndSet(ao, "BroadcastStormDetectionThreshold", &o->BroadcastStormDetectionThreshold);
-	GetHubAdminOptionDataAndSet(ao, "ClientMinimumRequiredBuild", &o->ClientMinimumRequiredBuild);
-	GetHubAdminOptionDataAndSet(ao, "FilterPPPoE", &o->FilterPPPoE);
-	GetHubAdminOptionDataAndSet(ao, "FilterOSPF", &o->FilterOSPF);
-	GetHubAdminOptionDataAndSet(ao, "FilterIPv4", &o->FilterIPv4);
-	GetHubAdminOptionDataAndSet(ao, "FilterIPv6", &o->FilterIPv6);
-	GetHubAdminOptionDataAndSet(ao, "FilterNonIP", &o->FilterNonIP);
-	GetHubAdminOptionDataAndSet(ao, "NoIPv4PacketLog", &o->NoIPv4PacketLog);
-	GetHubAdminOptionDataAndSet(ao, "NoIPv6PacketLog", &o->NoIPv6PacketLog);
-	GetHubAdminOptionDataAndSet(ao, "FilterBPDU", &o->FilterBPDU);
-	GetHubAdminOptionDataAndSet(ao, "NoIPv6DefaultRouterInRAWhenIPv6", &o->NoIPv6DefaultRouterInRAWhenIPv6);
-	GetHubAdminOptionDataAndSet(ao, "NoLookBPDUBridgeId", &o->NoLookBPDUBridgeId);
-	GetHubAdminOptionDataAndSet(ao, "NoManageVlanId", &o->NoManageVlanId);
-	GetHubAdminOptionDataAndSet(ao, "VlanTypeId", &o->VlanTypeId);
-	GetHubAdminOptionDataAndSet(ao, "FixForDLinkBPDU", &o->FixForDLinkBPDU);
-	GetHubAdminOptionDataAndSet(ao, "RequiredClientId", &o->RequiredClientId);
-	GetHubAdminOptionDataAndSet(ao, "AdjustTcpMssValue", &o->AdjustTcpMssValue);
-	GetHubAdminOptionDataAndSet(ao, "DisableAdjustTcpMss", &o->DisableAdjustTcpMss);
-	GetHubAdminOptionDataAndSet(ao, "NoDhcpPacketLogOutsideHub", &o->NoDhcpPacketLogOutsideHub);
-	GetHubAdminOptionDataAndSet(ao, "DisableHttpParsing", &o->DisableHttpParsing);
-	GetHubAdminOptionDataAndSet(ao, "DisableUdpAcceleration", &o->DisableUdpAcceleration);
-	GetHubAdminOptionDataAndSet(ao, "DisableUdpFilterForLocalBridgeNic", &o->DisableUdpFilterForLocalBridgeNic);
-	GetHubAdminOptionDataAndSet(ao, "ApplyIPv4AccessListOnArpPacket", &o->ApplyIPv4AccessListOnArpPacket);
-	GetHubAdminOptionDataAndSet(ao, "RemoveDefGwOnDhcpForLocalhost", &o->RemoveDefGwOnDhcpForLocalhost);
-	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxTcpSessionsPerIp", &o->SecureNAT_MaxTcpSessionsPerIp);
-	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxTcpSynSentPerIp", &o->SecureNAT_MaxTcpSynSentPerIp);
-	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxUdpSessionsPerIp", &o->SecureNAT_MaxUdpSessionsPerIp);
-	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxDnsSessionsPerIp", &o->SecureNAT_MaxDnsSessionsPerIp);
-	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxIcmpSessionsPerIp", &o->SecureNAT_MaxIcmpSessionsPerIp);
-	GetHubAdminOptionDataAndSet(ao, "AccessListIncludeFileCacheLifetime", &o->AccessListIncludeFileCacheLifetime);
-	GetHubAdminOptionDataAndSet(ao, "DisableKernelModeSecureNAT", &o->DisableKernelModeSecureNAT);
-	GetHubAdminOptionDataAndSet(ao, "DisableUserModeSecureNAT", &o->DisableUserModeSecureNAT);
-	GetHubAdminOptionDataAndSet(ao, "DisableCheckMacOnLocalBridge", &o->DisableCheckMacOnLocalBridge);
-	GetHubAdminOptionDataAndSet(ao, "DisableCorrectIpOffloadChecksum", &o->DisableCorrectIpOffloadChecksum);
-	GetHubAdminOptionDataAndSet(ao, "BroadcastLimiterStrictMode", &o->BroadcastLimiterStrictMode);
-	GetHubAdminOptionDataAndSet(ao, "MaxLoggedPacketsPerMinute", &o->MaxLoggedPacketsPerMinute);
-	GetHubAdminOptionDataAndSet(ao, "DoNotSaveHeavySecurityLogs", &o->DoNotSaveHeavySecurityLogs);
+	UINT value;
+
+	GetHubAdminOptionDataAndSet(ao, "NoAddressPollingIPv4", o->NoArpPolling);
+	GetHubAdminOptionDataAndSet(ao, "NoAddressPollingIPv6", o->NoIPv6AddrPolling);
+	GetHubAdminOptionDataAndSet(ao, "NoIpTable", o->NoIpTable);
+	GetHubAdminOptionDataAndSet(ao, "NoMacAddressLog", o->NoMacAddressLog);
+	GetHubAdminOptionDataAndSet(ao, "ManageOnlyPrivateIP", o->ManageOnlyPrivateIP);
+	GetHubAdminOptionDataAndSet(ao, "ManageOnlyLocalUnicastIPv6", o->ManageOnlyLocalUnicastIPv6);
+	GetHubAdminOptionDataAndSet(ao, "DisableIPParsing", o->DisableIPParsing);
+	GetHubAdminOptionDataAndSet(ao, "YieldAfterStorePacket", o->YieldAfterStorePacket);
+	GetHubAdminOptionDataAndSet(ao, "NoSpinLockForPacketDelay", o->NoSpinLockForPacketDelay);
+	GetHubAdminOptionDataAndSet(ao, "BroadcastStormDetectionThreshold", o->BroadcastStormDetectionThreshold);
+	GetHubAdminOptionDataAndSet(ao, "ClientMinimumRequiredBuild", o->ClientMinimumRequiredBuild);
+	GetHubAdminOptionDataAndSet(ao, "FilterPPPoE", o->FilterPPPoE);
+	GetHubAdminOptionDataAndSet(ao, "FilterOSPF", o->FilterOSPF);
+	GetHubAdminOptionDataAndSet(ao, "FilterIPv4", o->FilterIPv4);
+	GetHubAdminOptionDataAndSet(ao, "FilterIPv6", o->FilterIPv6);
+	GetHubAdminOptionDataAndSet(ao, "FilterNonIP", o->FilterNonIP);
+	GetHubAdminOptionDataAndSet(ao, "NoIPv4PacketLog", o->NoIPv4PacketLog);
+	GetHubAdminOptionDataAndSet(ao, "NoIPv6PacketLog", o->NoIPv6PacketLog);
+	GetHubAdminOptionDataAndSet(ao, "FilterBPDU", o->FilterBPDU);
+	GetHubAdminOptionDataAndSet(ao, "NoIPv6DefaultRouterInRAWhenIPv6", o->NoIPv6DefaultRouterInRAWhenIPv6);
+	GetHubAdminOptionDataAndSet(ao, "NoLookBPDUBridgeId", o->NoLookBPDUBridgeId);
+	GetHubAdminOptionDataAndSet(ao, "NoManageVlanId", o->NoManageVlanId);
+	GetHubAdminOptionDataAndSet(ao, "VlanTypeId", o->VlanTypeId);
+	GetHubAdminOptionDataAndSet(ao, "FixForDLinkBPDU", o->FixForDLinkBPDU);
+	GetHubAdminOptionDataAndSet(ao, "RequiredClientId", o->RequiredClientId);
+	GetHubAdminOptionDataAndSet(ao, "AdjustTcpMssValue", o->AdjustTcpMssValue);
+	GetHubAdminOptionDataAndSet(ao, "DisableAdjustTcpMss", o->DisableAdjustTcpMss);
+	GetHubAdminOptionDataAndSet(ao, "NoDhcpPacketLogOutsideHub", o->NoDhcpPacketLogOutsideHub);
+	GetHubAdminOptionDataAndSet(ao, "DisableHttpParsing", o->DisableHttpParsing);
+	GetHubAdminOptionDataAndSet(ao, "DisableUdpAcceleration", o->DisableUdpAcceleration);
+	GetHubAdminOptionDataAndSet(ao, "DisableUdpFilterForLocalBridgeNic", o->DisableUdpFilterForLocalBridgeNic);
+	GetHubAdminOptionDataAndSet(ao, "ApplyIPv4AccessListOnArpPacket", o->ApplyIPv4AccessListOnArpPacket);
+	GetHubAdminOptionDataAndSet(ao, "RemoveDefGwOnDhcpForLocalhost", o->RemoveDefGwOnDhcpForLocalhost);
+	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxTcpSessionsPerIp", o->SecureNAT_MaxTcpSessionsPerIp);
+	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxTcpSynSentPerIp", o->SecureNAT_MaxTcpSynSentPerIp);
+	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxUdpSessionsPerIp", o->SecureNAT_MaxUdpSessionsPerIp);
+	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxDnsSessionsPerIp", o->SecureNAT_MaxDnsSessionsPerIp);
+	GetHubAdminOptionDataAndSet(ao, "SecureNAT_MaxIcmpSessionsPerIp", o->SecureNAT_MaxIcmpSessionsPerIp);
+	GetHubAdminOptionDataAndSet(ao, "AccessListIncludeFileCacheLifetime", o->AccessListIncludeFileCacheLifetime);
+	GetHubAdminOptionDataAndSet(ao, "DisableKernelModeSecureNAT", o->DisableKernelModeSecureNAT);
+	GetHubAdminOptionDataAndSet(ao, "DisableIpRawModeSecureNAT", o->DisableIpRawModeSecureNAT);
+	GetHubAdminOptionDataAndSet(ao, "DisableUserModeSecureNAT", o->DisableUserModeSecureNAT);
+	GetHubAdminOptionDataAndSet(ao, "DisableCheckMacOnLocalBridge", o->DisableCheckMacOnLocalBridge);
+	GetHubAdminOptionDataAndSet(ao, "DisableCorrectIpOffloadChecksum", o->DisableCorrectIpOffloadChecksum);
+	GetHubAdminOptionDataAndSet(ao, "BroadcastLimiterStrictMode", o->BroadcastLimiterStrictMode);
+	GetHubAdminOptionDataAndSet(ao, "MaxLoggedPacketsPerMinute", o->MaxLoggedPacketsPerMinute);
+	GetHubAdminOptionDataAndSet(ao, "DoNotSaveHeavySecurityLogs", o->DoNotSaveHeavySecurityLogs);
+	GetHubAdminOptionDataAndSet(ao, "DropBroadcastsInPrivacyFilterMode", o->DropBroadcastsInPrivacyFilterMode);
+	GetHubAdminOptionDataAndSet(ao, "DropArpInPrivacyFilterMode", o->DropArpInPrivacyFilterMode);
+	GetHubAdminOptionDataAndSet(ao, "SuppressClientUpdateNotification", o->SuppressClientUpdateNotification);
+	GetHubAdminOptionDataAndSet(ao, "FloodingSendQueueBufferQuota", o->FloodingSendQueueBufferQuota);
+	GetHubAdminOptionDataAndSet(ao, "AssignVLanIdByRadiusAttribute", o->AssignVLanIdByRadiusAttribute);
+	GetHubAdminOptionDataAndSet(ao, "DenyAllRadiusLoginWithNoVlanAssign", o->DenyAllRadiusLoginWithNoVlanAssign);
+	GetHubAdminOptionDataAndSet(ao, "SecureNAT_RandomizeAssignIp", o->SecureNAT_RandomizeAssignIp);
+	GetHubAdminOptionDataAndSet(ao, "DetectDormantSessionInterval", o->DetectDormantSessionInterval);
+	GetHubAdminOptionDataAndSet(ao, "NoPhysicalIPOnPacketLog", o->NoPhysicalIPOnPacketLog);
+	GetHubAdminOptionDataAndSet(ao, "UseHubNameAsDhcpUserClassOption", o->UseHubNameAsDhcpUserClassOption);
+	GetHubAdminOptionDataAndSet(ao, "UseHubNameAsRadiusNasId", o->UseHubNameAsRadiusNasId);
 }
 
 // Convert the contents of the HUB_OPTION to data
@@ -618,12 +669,24 @@ void HubOptionStructToData(RPC_ADMIN_OPTION *ao, HUB_OPTION *o, char *hub_name)
 	Add(aol, NewAdminOption("SecureNAT_MaxIcmpSessionsPerIp", o->SecureNAT_MaxIcmpSessionsPerIp));
 	Add(aol, NewAdminOption("AccessListIncludeFileCacheLifetime", o->AccessListIncludeFileCacheLifetime));
 	Add(aol, NewAdminOption("DisableKernelModeSecureNAT", o->DisableKernelModeSecureNAT));
+	Add(aol, NewAdminOption("DisableIpRawModeSecureNAT", o->DisableIpRawModeSecureNAT));
 	Add(aol, NewAdminOption("DisableUserModeSecureNAT", o->DisableUserModeSecureNAT));
 	Add(aol, NewAdminOption("DisableCheckMacOnLocalBridge", o->DisableCheckMacOnLocalBridge));
 	Add(aol, NewAdminOption("DisableCorrectIpOffloadChecksum", o->DisableCorrectIpOffloadChecksum));
 	Add(aol, NewAdminOption("BroadcastLimiterStrictMode", o->BroadcastLimiterStrictMode));
 	Add(aol, NewAdminOption("MaxLoggedPacketsPerMinute", o->MaxLoggedPacketsPerMinute));
 	Add(aol, NewAdminOption("DoNotSaveHeavySecurityLogs", o->DoNotSaveHeavySecurityLogs));
+	Add(aol, NewAdminOption("DropBroadcastsInPrivacyFilterMode", o->DropBroadcastsInPrivacyFilterMode));
+	Add(aol, NewAdminOption("DropArpInPrivacyFilterMode", o->DropArpInPrivacyFilterMode));
+	Add(aol, NewAdminOption("SuppressClientUpdateNotification", o->SuppressClientUpdateNotification));
+	Add(aol, NewAdminOption("FloodingSendQueueBufferQuota", o->FloodingSendQueueBufferQuota));
+	Add(aol, NewAdminOption("AssignVLanIdByRadiusAttribute", o->AssignVLanIdByRadiusAttribute));
+	Add(aol, NewAdminOption("DenyAllRadiusLoginWithNoVlanAssign", o->DenyAllRadiusLoginWithNoVlanAssign));
+	Add(aol, NewAdminOption("SecureNAT_RandomizeAssignIp", o->SecureNAT_RandomizeAssignIp));
+	Add(aol, NewAdminOption("DetectDormantSessionInterval", o->DetectDormantSessionInterval));
+	Add(aol, NewAdminOption("NoPhysicalIPOnPacketLog", o->NoPhysicalIPOnPacketLog));
+	Add(aol, NewAdminOption("UseHubNameAsDhcpUserClassOption", o->UseHubNameAsDhcpUserClassOption));
+	Add(aol, NewAdminOption("UseHubNameAsRadiusNasId", o->UseHubNameAsRadiusNasId));
 
 	Zero(ao, sizeof(RPC_ADMIN_OPTION));
 
@@ -635,6 +698,8 @@ void HubOptionStructToData(RPC_ADMIN_OPTION *ao, HUB_OPTION *o, char *hub_name)
 	for (i = 0;i < LIST_NUM(aol);i++)
 	{
 		ADMIN_OPTION *a = LIST_DATA(aol, i);
+
+		UniStrCpy(a->Descrption, sizeof(a->Descrption), GetHubAdminOptionHelpString(a->Name));
 
 		Copy(&ao->Items[i], a, sizeof(ADMIN_OPTION));
 
@@ -766,13 +831,102 @@ char *GenerateAcStr(AC *ac)
 // Calculate whether the specified IP address is rejected by the access list
 bool IsIpDeniedByAcList(IP *ip, LIST *o)
 {
+	UINT i;
+	// Validate arguments
+	if (ip == NULL || o == NULL)
+	{
+		return false;
+	}
+
+	if (GetGlobalServerFlag(GSF_DISABLE_AC) != 0)
+	{
+		return false;
+	}
+
+	for (i = 0;i < LIST_NUM(o);i++)
+	{
+		AC *ac = LIST_DATA(o, i);
+
+		if (IsIpMaskedByAc(ip, ac))
+		{
+			if (ac->Deny == false)
+			{
+				return false;
+			}
+			else
+			{
+				return true;
+			}
+		}
+	}
+
 	return false;
 }
 
 // Calculate whether the specified IP address is masked by the AC
 bool IsIpMaskedByAc(IP *ip, AC *ac)
 {
-	return false;
+	UINT uip, net, mask;
+	// Validate arguments
+	if (ip == NULL || ac == NULL)
+	{
+		return false;
+	}
+
+	if (GetGlobalServerFlag(GSF_DISABLE_AC) != 0)
+	{
+		return false;
+	}
+
+	if (IsIP4(ip))
+	{
+		// IPv4
+		uip = IPToUINT(ip);
+		net = IPToUINT(&ac->IpAddress);
+		mask = IPToUINT(&ac->SubnetMask);
+
+		if (ac->Masked == false)
+		{
+			if (uip == net)
+			{
+				return true;
+			}
+		}
+		else
+		{
+			if ((uip & mask) == (net & mask))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+	else
+	{
+		// IPv6
+		if (ac->Masked == false)
+		{
+			if (CmpIpAddr(ip, &ac->IpAddress) == 0)
+			{
+				return true;
+			}
+		}
+		else
+		{
+			IP and1, and2;
+
+			IPAnd6(&and1, ip, &ac->SubnetMask);
+			IPAnd6(&and2, &ac->IpAddress, &ac->SubnetMask);
+
+			if (CmpIpAddr(&and1, &and2) == 0)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 }
 
 // Set the AC
@@ -984,12 +1138,6 @@ bool IsValidCertInHub(HUB *h, X *x)
 
 	if (h->HubDb == NULL)
 	{
-		return false;
-	}
-
-	if (IsXRevoked(x))
-	{
-		// Disabled by the CRL stored in the file
 		return false;
 	}
 
@@ -1428,12 +1576,14 @@ void HubWatchDogThread(THREAD *t, void *param)
 		o2 = NewListFast(NULL);
 
 		// Send an ARP packet
-		LockList(hub->IpTable);
+		LockHashList(hub->MacHashTable);
 		{
 			num = LIST_NUM(hub->IpTable);
 			for (i = 0;i < LIST_NUM(hub->IpTable);i++)
 			{
 				IP_TABLE_ENTRY *e = LIST_DATA(hub->IpTable, i);
+
+				if (e == NULL) continue;
 
 				if ((e->UpdatedTime + (UINT64)(IP_TABLE_EXPIRE_TIME)) > Tick64())
 				{
@@ -1510,7 +1660,7 @@ void HubWatchDogThread(THREAD *t, void *param)
 				}
 			}
 		}
-		UnlockList(hub->IpTable);
+		UnlockHashList(hub->MacHashTable);
 
 		if ((LIST_NUM(o) + LIST_NUM(o2)) != 0)
 		{
@@ -1601,7 +1751,7 @@ ESCAPE:
 	return;
 }
 
-// Eable / disable the SecureNAT
+// Enable / disable the SecureNAT
 void EnableSecureNAT(HUB *h, bool enable)
 {
 	EnableSecureNATEx(h, enable, false);
@@ -1923,6 +2073,7 @@ bool IsPacketMaskedByAccessList(SESSION *s, PKT *p, ACCESS *a, UINT64 dest_usern
 	IPV6_HEADER *ip6 = NULL;
 	bool is_ipv4_packet = false;
 	bool is_ipv6_packet = false;
+	bool is_arp_packet = false;
 	// Validate arguments
 	if (s == NULL || p == NULL || a == NULL)
 	{
@@ -2053,6 +2204,11 @@ bool IsPacketMaskedByAccessList(SESSION *s, PKT *p, ACCESS *a, UINT64 dest_usern
 	else
 	{
 		is_ipv6_packet = true;
+	}
+
+	if (p->TypeL3 == L3_ARPV4)
+	{
+		is_arp_packet = true;
 	}
 
 	if (is_ipv4_packet)
@@ -2221,7 +2377,7 @@ bool IsPacketMaskedByAccessList(SESSION *s, PKT *p, ACCESS *a, UINT64 dest_usern
 	}
 
 	// Don't match the packet of non-IPv4 and non-IPv6
-	if (is_ipv4_packet == false && is_ipv6_packet==false)
+	if (is_arp_packet)
 	{
 		if (s->Hub != NULL && s->Hub->Option != NULL && s->Hub->Option->ApplyIPv4AccessListOnArpPacket)
 		{
@@ -2479,7 +2635,7 @@ BUF *BuildRedirectToUrlPayload(HUB *hub, SESSION *s, char *redirect_url)
 			WriteBuf(b2, tmp, StrLen(tmp));
 			WriteBuf(b2, secret, StrLen(secret));
 
-			HashSha1(hash, b2->Buf, b2->Size);
+			Sha1(hash, b2->Buf, b2->Size);
 
 			BinToStr(hash_str, sizeof(hash_str), hash, sizeof(hash));
 
@@ -2620,7 +2776,7 @@ void ForceRedirectToUrl(HUB *hub, SESSION *src_session, PKT *p, char *redirect_u
 
 	// Reply packet
 	StorePacketToHubPa((HUB_PA *)src_session->PacketAdapter->Param,
-		NULL, b->Buf, b->Size, NULL);
+		NULL, b->Buf, b->Size, NULL, false, false);
 
 	// Release the memory
 	Free(tcp_data);
@@ -2783,7 +2939,7 @@ bool ApplyAccessListToStoredPacket(HUB *hub, SESSION *s, PKT *p)
 
 	if (pass)
 	{
-		if (s != NULL && s->FirstTimeHttpRedirect && s->FirstTimeHttpAccessCheckIp != 0)
+		if (s->FirstTimeHttpRedirect && s->FirstTimeHttpAccessCheckIp != 0)
 		{
 			if ((p->TypeL3 == L3_IPV4 || p->TypeL3 == L3_IPV6) &&
 				p->TypeL4 == L4_TCP)
@@ -2893,39 +3049,6 @@ bool IsTcpPacketNcsiHttpAccess(PKT *p)
 	}
 
 	return false;
-}
-
-// Set the URL to which to redirect first
-bool SetSessionFirstRedirectHttpUrl(SESSION *s, char *url)
-{
-	URL_DATA d;
-	IP ip;
-	// Validate arguments
-	if (s == NULL || url == NULL || IsEmptyStr(url))
-	{
-		return false;
-	}
-
-	if (ParseUrl(&d, url, false, NULL) == false)
-	{
-		return false;
-	}
-
-	if (StrToIP(&ip, d.HostName) == false)
-	{
-		return false;
-	}
-
-	if (IsIP4(&ip) == false)
-	{
-		return false;
-	}
-
-	s->FirstTimeHttpAccessCheckIp = IPToUINT(&ip);
-	StrCpy(s->FirstTimeHttpRedirectUrl, sizeof(s->FirstTimeHttpRedirectUrl), url);
-	s->FirstTimeHttpRedirect = true;
-
-	return true;
 }
 
 // Adding Access List
@@ -3137,39 +3260,10 @@ UINT64 UsernameToInt64(char *name)
 		return 0;
 	}
 
-	Hash(hash, tmp, StrLen(tmp), true);
+	Sha0(hash, tmp, StrLen(tmp));
 	Copy(&ret, hash, sizeof(ret));
 
 	return ret;
-}
-
-// Search the session from the session pointer
-SESSION *GetSessionByPtr(HUB *hub, void *ptr)
-{
-	// Validate arguments
-	if (hub == NULL || ptr == NULL)
-	{
-		return NULL;
-	}
-
-	LockList(hub->SessionList);
-	{
-		UINT i;
-		for (i = 0;i < LIST_NUM(hub->SessionList);i++)
-		{
-			SESSION *s = LIST_DATA(hub->SessionList, i);
-			if (s == (SESSION *)ptr)
-			{
-				// Found
-				AddRef(s->ref);
-				UnlockList(hub->SessionList);
-				return s;
-			}
-		}
-	}
-	UnlockList(hub->SessionList);
-
-	return NULL;
 }
 
 // Search the session from the session name
@@ -3307,13 +3401,16 @@ void HubPaFree(SESSION *s)
 	}
 
 	// Erase MAC address table entries that is associated with this session
-	LockList(hub->MacTable);
+	LockHashList(hub->MacHashTable);
 	{
-		UINT i, num = LIST_NUM(hub->MacTable);
+		UINT i, num;
+		MAC_TABLE_ENTRY **pp;
 		LIST *o = NewListFast(NULL);
+
+		pp = (MAC_TABLE_ENTRY **)HashListToArray(hub->MacHashTable, &num);
 		for (i = 0;i < num;i++)
 		{
-			MAC_TABLE_ENTRY *e = (MAC_TABLE_ENTRY *)LIST_DATA(hub->MacTable, i);
+			MAC_TABLE_ENTRY *e = (MAC_TABLE_ENTRY *)pp[i];
 			if (e->Session == s)
 			{
 				Add(o, e);
@@ -3322,10 +3419,11 @@ void HubPaFree(SESSION *s)
 		for (i = 0;i < LIST_NUM(o);i++)
 		{
 			MAC_TABLE_ENTRY *e = (MAC_TABLE_ENTRY *)LIST_DATA(o, i);
-			Delete(hub->MacTable, e);
+			DeleteHash(hub->MacHashTable, e);
 			Free(e);
 		}
 		ReleaseList(o);
+		Free(pp);
 	}
 	{
 		UINT i, num = LIST_NUM(hub->IpTable);
@@ -3346,7 +3444,7 @@ void HubPaFree(SESSION *s)
 		}
 		ReleaseList(o);
 	}
-	UnlockList(hub->MacTable);
+	UnlockHashList(hub->MacHashTable);
 
 	// Release the STORM list
 	LockList(pa->StormList);
@@ -3371,6 +3469,11 @@ void HubPaFree(SESSION *s)
 		while (b = GetNext(pa->PacketQueue))
 		{
 			// Release the block
+			if (b->IsFlooding)
+			{
+				CedarAddCurrentTcpQueueSize(s->Cedar, -((int)b->Size));
+			}
+
 			FreeBlock(b);
 		}
 	}
@@ -3413,6 +3516,11 @@ UINT HubPaGetNextPacket(SESSION *s, void **data)
 		}
 		else
 		{
+			if (block->IsFlooding)
+			{
+				CedarAddCurrentTcpQueueSize(s->Cedar, -((int)block->Size));
+			}
+
 			// Found
 			*data = block->Buf;
 			ret = block->Size;
@@ -3446,7 +3554,7 @@ bool HubPaPutPacket(SESSION *s, void *data, UINT size)
 	pa->Now = Tick64();
 
 	// Processing of Adjust TCP MSS
-	if (hub->Option != NULL && hub->Option->DisableAdjustTcpMss == false && s != NULL)
+	if (hub != NULL && hub->Option != NULL && hub->Option->DisableAdjustTcpMss == false && s != NULL)
 	{
 		UINT target_mss = (hub->Option->AdjustTcpMssValue == 0 ? INFINITE : hub->Option->AdjustTcpMssValue);
 		UINT session_mss = (s->AdjustMss == 0 ? INFINITE : s->AdjustMss);
@@ -3525,9 +3633,12 @@ bool HubPaPutPacket(SESSION *s, void *data, UINT size)
 		CancelList(s->CancelList);
 
 		// Yield
-		if (hub->Option != NULL && hub->Option->YieldAfterStorePacket)
+		if (hub != NULL)
 		{
-			YieldCpu();
+			if (hub->Option != NULL && hub->Option->YieldAfterStorePacket)
+			{
+				YieldCpu();
+			}
 		}
 
 		return true;
@@ -3590,7 +3701,7 @@ LABEL_TRY_AGAIN:
 
 	if (no_parse_dhcp == false && packet != NULL)
 	{
-		if (hub->Option != NULL && hub->Option->RemoveDefGwOnDhcpForLocalhost)
+		if (hub != NULL && hub->Option != NULL && hub->Option->RemoveDefGwOnDhcpForLocalhost)
 		{
 			// Remove the designation of the DHCP server from the DHCP response packet addressed to localhost
 			if (packet->TypeL7 == L7_DHCPV4)
@@ -3654,26 +3765,6 @@ LABEL_TRY_AGAIN:
 	return true;
 }
 
-// VGS: Setting for embedding UA tag
-void VgsSetEmbTag(bool b)
-{
-	g_vgs_emb_tag = b;
-}
-
-// VGS: Setting for the User-Agent value
-void VgsSetUserAgentValue(char *str)
-{
-	// Validate arguments
-	if (str == NULL || StrLen(str) != 8)
-	{
-		Zero(vgs_ua_str, sizeof(vgs_ua_str));
-	}
-	else
-	{
-		StrCpy(vgs_ua_str, sizeof(vgs_ua_str), str);
-	}
-}
-
 // Checking algorithm to prevent broadcast-storm
 // If broadcast from a specific endpoint came frequently, filter it
 bool CheckBroadcastStorm(HUB *hub, SESSION *s, PKT *p)
@@ -3698,7 +3789,7 @@ bool CheckBroadcastStorm(HUB *hub, SESSION *s, PKT *p)
 		return true;
 	}
 
-	if (hub != NULL && hub->Option != NULL)
+	if (hub->Option != NULL)
 	{
 		strict = hub->Option->BroadcastLimiterStrictMode;
 		no_heavy = hub->Option->DoNotSaveHeavySecurityLogs;
@@ -3819,9 +3910,12 @@ void StorePacket(HUB *hub, SESSION *s, PKT *packet)
 	bool broadcast_mode;
 	HUB_PA *dest_pa;
 	SESSION *dest_session;
-	TRAFFIC traffic;
 	UINT64 now = Tick64();
 	bool no_heavy = false;
+	bool drop_broadcast_packet_privacy = false;
+	bool drop_arp_packet_privacy = false;
+	UINT tcp_queue_quota = 0;
+	UINT64 dormant_interval = 0;
 	// Validate arguments
 	if (hub == NULL || packet == NULL)
 	{
@@ -3842,10 +3936,31 @@ void StorePacket(HUB *hub, SESSION *s, PKT *packet)
 	if (hub->Option != NULL)
 	{
 		no_heavy = hub->Option->DoNotSaveHeavySecurityLogs;
+		drop_broadcast_packet_privacy = hub->Option->DropBroadcastsInPrivacyFilterMode;
+		drop_arp_packet_privacy = hub->Option->DropArpInPrivacyFilterMode;
+		tcp_queue_quota = hub->Option->FloodingSendQueueBufferQuota;
+		if (hub->Option->DetectDormantSessionInterval != 0)
+		{
+			dormant_interval = (UINT64)hub->Option->DetectDormantSessionInterval * (UINT64)1000;
+		}
+	}
+
+	if (dormant_interval != 0)
+	{
+		if (s != NULL && s->NormalClient)
+		{
+			if (packet->MacAddressSrc != NULL)
+			{
+				if (IsHubMacAddress(packet->MacAddressSrc) == false)
+				{
+					s->LastCommTimeForDormant = now;
+				}
+			}
+		}
 	}
 
 	// Lock the entire MAC address table
-	LockList(hub->MacTable);
+	LockHashList(hub->MacHashTable);
 	{
 		// Filtering
 		if (s != NULL && (packet->DelayedForwardTick == 0 && StorePacketFilter(s, packet) == false))
@@ -3926,28 +4041,39 @@ DISCARD_PACKET:
 					{
 						t.VlanId = 0;
 					}
-					entry = Search(hub->MacTable, &t);
+					entry = SearchHash(hub->MacHashTable, &t);
 
 					if (entry == NULL)
 					{
-						// Remove old entries
-						DeleteExpiredMacTableEntry(hub->MacTable);
+						if (hub->LastFlushTick == 0 || (hub->LastFlushTick + (UINT64)OLD_MAC_ADDRESS_ENTRY_FLUSH_INTERVAL) < now)
+						{
+							hub->LastFlushTick = now;
+
+							// Remove old entries
+							DeleteExpiredMacTableEntry(hub->MacHashTable);
+						}
 
 						// Register since it is not registered
 						if ((s->Policy->MaxMac != 0 || s->Policy->NoBridge) && (s->IsOpenVPNL3Session == false))
 						{
 							UINT i, num_mac_for_me = 0;
 							UINT limited_count;
+							MAC_TABLE_ENTRY **pp;
+							UINT num_pp;
+
+							pp = (MAC_TABLE_ENTRY **)HashListToArray(hub->MacHashTable, &num_pp);
 
 							// Examine a number of MAC addresses that are registered in this current session
-							for (i = 0;i < LIST_NUM(hub->MacTable);i++)
+							for (i = 0;i < num_pp;i++)
 							{
-								MAC_TABLE_ENTRY *e = LIST_DATA(hub->MacTable, i);
+								MAC_TABLE_ENTRY *e = pp[i];
 								if (e->Session == s)
 								{
 									num_mac_for_me++;
 								}
 							}
+
+							Free(pp);
 
 							limited_count = 0xffffffff;
 							if (s->Policy->NoBridge)
@@ -3988,27 +4114,10 @@ DISCARD_PACKET:
 							}
 						}
 
-						if (LIST_NUM(hub->MacTable) >= MAX_MAC_TABLES)
+						if (HASH_LIST_NUM(hub->MacHashTable) >= MAX_MAC_TABLES)
 						{
-							// Delete the oldest entry because the MAC table database is
-							// exceeded the maximum number of entries
-							UINT i;
-							UINT64 old_time = 0xffffffffffffffffULL;
-							MAC_TABLE_ENTRY *old_entry = NULL;
-							for (i = 0;i < LIST_NUM(hub->MacTable);i++)
-							{
-								MAC_TABLE_ENTRY *e = LIST_DATA(hub->MacTable, i);
-								if (e->UpdatedTime <= old_time)
-								{
-									old_time = e->UpdatedTime;
-									old_entry = e;
-								}
-							}
-							if (old_entry != NULL)
-							{
-								Delete(hub->MacTable, old_entry);
-								Free(old_entry);
-							}
+							// Number of MAC addresses exceeded, discard the packet
+							goto DISCARD_PACKET;
 						}
 
 						entry = ZeroMalloc(sizeof(MAC_TABLE_ENTRY));
@@ -4025,7 +4134,7 @@ DISCARD_PACKET:
 						entry->Session = s;
 						entry->UpdatedTime = entry->CreatedTime = now;
 
-						Insert(hub->MacTable, entry);
+						AddHash(hub->MacHashTable, entry);
 
 						if (hub->Option->NoMacAddressLog == false)
 						{
@@ -4034,19 +4143,16 @@ DISCARD_PACKET:
 
 							if (s != NULL)
 							{
-								MacToStr(mac_address, sizeof(mac_address), packet->MacAddressSrc);
-//								Debug("Register MAC Address %s to Session %X.\n", mac_address, s);
-
-								if (packet->VlanId == 0)
+								if (no_heavy == false)
 								{
-									if (no_heavy == false)
+									MacToStr(mac_address, sizeof(mac_address), packet->MacAddressSrc);
+	//								Debug("Register MAC Address %s to Session %X.\n", mac_address, s);
+
+									if (packet->VlanId == 0)
 									{
 										HLog(hub, "LH_MAC_REGIST", s->Name, mac_address);
 									}
-								}
-								else
-								{
-									if (no_heavy == false)
+									else
 									{
 										HLog(hub, "LH_MAC_REGIST_VLAN", s->Name, mac_address, packet->VlanId);
 									}
@@ -4095,7 +4201,7 @@ DISCARD_PACKET:
 									UCHAR hash[MD5_SIZE];
 									UINT64 tick_diff = Tick64() - s->LastDLinkSTPPacketSendTick;
 
-									Hash(hash, packet->PacketData, packet->PacketSize, false);
+									Md5(hash, packet->PacketData, packet->PacketSize);
 
 									if ((s->LastDLinkSTPPacketSendTick != 0) &&
 										(tick_diff < 750ULL) &&
@@ -4142,18 +4248,15 @@ UPDATE_FDB:
 
 									if (s != NULL)
 									{
-										MacToStr(mac_address, sizeof(mac_address), packet->MacHeader->SrcAddress);
-										Debug("Register MAC Address %s to Session %X.\n", mac_address, s);
-										if (packet->VlanId == 0)
+										if (no_heavy == false)
 										{
-											if (no_heavy == false)
+											MacToStr(mac_address, sizeof(mac_address), packet->MacHeader->SrcAddress);
+											Debug("Register MAC Address %s to Session %X.\n", mac_address, s);
+											if (packet->VlanId == 0)
 											{
 												HLog(hub, "LH_MAC_REGIST", s->Name, mac_address);
 											}
-										}
-										else
-										{
-											if (no_heavy == false)
+											else
 											{
 												HLog(hub, "LH_MAC_REGIST_VLAN", s->Name, mac_address, packet->VlanId);
 											}
@@ -4186,7 +4289,7 @@ UPDATE_FDB:
 					{
 						t.VlanId = 0;
 					}
-					entry = Search(hub->MacTable, &t);
+					entry = SearchHash(hub->MacHashTable, &t);
 
 					if (entry == NULL)
 					{
@@ -4607,30 +4710,6 @@ UPDATE_FDB:
 					}
 				}
 
-				// Adding traffic
-				Zero(&traffic, sizeof(traffic));
-				if (packet->BroadcastPacket)
-				{
-					// Broadcast
-					traffic.Send.BroadcastBytes = packet->PacketSize;
-					traffic.Send.BroadcastCount = 1;
-				}
-				else
-				{
-					// Unicast
-					traffic.Send.UnicastBytes = packet->PacketSize;
-					traffic.Send.UnicastCount = 1;
-				}
-
-				if (s != NULL)
-				{
-					AddTrafficForSession(s, &traffic);
-				}
-
-				// Invert the Recv and Send of traffic information
-				Copy(&traffic.Recv, &traffic.Send, sizeof(TRAFFIC_ENTRY));
-				Zero(&traffic.Send, sizeof(TRAFFIC_ENTRY));
-
 				// Broadcast this packet to the monitor port of the HUB
 				if (hub->MonitorList->num_item != 0)
 				{
@@ -4649,7 +4728,7 @@ UPDATE_FDB:
 								data = MallocFast(size);
 								Copy(data, packet->PacketData, size);
 								StorePacketToHubPa((HUB_PA *)monitor_session->PacketAdapter->Param,
-									s, data, size, packet);
+									s, data, size, packet, false, false);
 							}
 						}
 					}
@@ -4658,6 +4737,7 @@ UPDATE_FDB:
 
 				if (broadcast_mode == false)
 				{
+					// Unicast packet
 					if (dest_pa != NULL)
 					{
 						if (dest_session->Policy->NoIPv6DefaultRouterInRA ||
@@ -4751,13 +4831,13 @@ UPDATE_FDB:
 						}
 
 						if (s != NULL &&
-							(packet->BroadcastPacket == false &&
+							((drop_broadcast_packet_privacy || packet->BroadcastPacket == false) &&
 							s->Policy->PrivacyFilter &&
 							dest_session->Policy->PrivacyFilter)
 							)
 						{
 							// Privacy filter
-							if (packet->TypeL3 != L3_ARPV4)
+							if (drop_arp_packet_privacy || packet->TypeL3 != L3_ARPV4)
 							{
 								goto DISCARD_UNICAST_PACKET;
 							}
@@ -4783,10 +4863,7 @@ UPDATE_FDB:
 						}
 
 						// Store to the destination HUB_PA
-						StorePacketToHubPa(dest_pa, s, packet->PacketData, packet->PacketSize, packet);
-
-						// Adding traffic
-						AddTrafficForSession(dest_session, &traffic);
+						StorePacketToHubPa(dest_pa, s, packet->PacketData, packet->PacketSize, packet, false, false);
 					}
 					else
 					{
@@ -4796,6 +4873,9 @@ DISCARD_UNICAST_PACKET:
 				}
 				else
 				{
+					// Flooding as a broadcast packet
+					UINT current_tcp_queue_size = 0;
+
 					// Take a packet log
 					if (s != NULL)
 					{
@@ -4823,6 +4903,41 @@ DISCARD_UNICAST_PACKET:
 								if (dest_session->IsMonitorMode)
 								{
 									discard = true;
+								}
+
+								if (dest_session->NormalClient)
+								{
+									if (dormant_interval != 0)
+									{
+										if (dest_session->LastCommTimeForDormant == 0 ||
+											(dest_session->LastCommTimeForDormant + dormant_interval) < now)
+										{
+											// This is dormant session
+											discard = true;
+										}
+									}
+								}
+
+								if (tcp_queue_quota != 0)
+								{
+									current_tcp_queue_size = CedarGetCurrentTcpQueueSize(hub->Cedar);
+
+									if (current_tcp_queue_size >= tcp_queue_quota)
+									{
+										// Quota exceeded. Discard the packet for normal session.
+										if (dest_session->Connection != NULL &&
+											dest_session->Connection->Protocol == CONNECTION_TCP)
+										{
+											discard = true;
+										}
+
+										if (dest_session->LinkModeServer)
+										{
+											LINK *k = dest_session->Link;
+
+											discard = true;
+										}
+									}
 								}
 
 								if (dest_session->VLanId != 0 && packet->TypeL3 == L3_TAGVLAN &&
@@ -4933,13 +5048,13 @@ DISCARD_UNICAST_PACKET:
 								}
 
 								if (s != NULL &&
-									(packet->BroadcastPacket == false &&
+									((drop_broadcast_packet_privacy || packet->BroadcastPacket == false) &&
 									s->Policy->PrivacyFilter &&
 									dest_session->Policy->PrivacyFilter)
 									)
 								{
 									// Privacy filter
-									if (packet->TypeL3 != L3_ARPV4)
+									if (drop_arp_packet_privacy || packet->TypeL3 != L3_ARPV4)
 									{
 										discard = true;
 									}
@@ -4956,24 +5071,25 @@ DISCARD_UNICAST_PACKET:
 
 								if (discard == false && dest_pa != NULL)
 								{
-									// Store in session other than its own
-									data = MallocFast(packet->PacketSize);
-									Copy(data, packet->PacketData, packet->PacketSize);
-									size = packet->PacketSize;
-
-									if (delete_default_router_in_ra)
+									if (s == NULL ||
+										ApplyAccessListToForwardPacket(s->Hub, s, dest_pa->Session, packet))
 									{
-										PKT *pkt2 = ParsePacket(data, size);
+										// Store in session other than its own
+										data = MallocFast(packet->PacketSize);
+										Copy(data, packet->PacketData, packet->PacketSize);
+										size = packet->PacketSize;
 
-										DeleteIPv6DefaultRouterInRA(pkt2);
+										if (delete_default_router_in_ra)
+										{
+											PKT *pkt2 = ParsePacket(data, size);
 
-										FreePacket(pkt2);
+											DeleteIPv6DefaultRouterInRA(pkt2);
+
+											FreePacket(pkt2);
+										}
+
+										StorePacketToHubPa(dest_pa, s, data, size, packet, true, true);
 									}
-
-									StorePacketToHubPa(dest_pa, s, data, size, packet);
-
-									// Adding traffic
-									AddTrafficForSession(dest_session, &traffic);
 								}
 							}
 						}
@@ -4987,7 +5103,7 @@ DISCARD_BROADCAST_PACKET:
 			}
 		}
 	}
-	UnlockList(hub->MacTable);
+	UnlockHashList(hub->MacHashTable);
 }
 
 // Examine the maximum number of logging target packets per minute
@@ -5067,7 +5183,6 @@ bool IsIPManagementTargetForHUB(IP *ip, HUB *hub)
 void DeleteOldIpTableEntry(LIST *o)
 {
 	UINT i;
-	UINT64 oldest_time = 0xffffffffffffffffULL;
 	IP_TABLE_ENTRY *old = NULL;
 	// Validate arguments
 	if (o == NULL)
@@ -5078,11 +5193,7 @@ void DeleteOldIpTableEntry(LIST *o)
 	for (i = 0;i < LIST_NUM(o);i++)
 	{
 		IP_TABLE_ENTRY *e = LIST_DATA(o, i);
-
-		if (e->UpdatedTime <= oldest_time)
-		{
-			old = e;
-		}
+		old = e;
 	}
 
 	if (old != NULL)
@@ -5149,7 +5260,7 @@ STORM *SearchStormList(HUB_PA *pa, UCHAR *mac_address, IP *src_ip, IP *dest_ip, 
 }
 
 // Store the packet to destination HUB_PA
-void StorePacketToHubPa(HUB_PA *dest, SESSION *src, void *data, UINT size, PKT *packet)
+void StorePacketToHubPa(HUB_PA *dest, SESSION *src, void *data, UINT size, PKT *packet, bool is_flooding, bool no_check_acl)
 {
 	BLOCK *b;
 	// Validate arguments
@@ -5164,13 +5275,16 @@ void StorePacketToHubPa(HUB_PA *dest, SESSION *src, void *data, UINT size, PKT *
 		return;
 	}
 
-	if (src != NULL)
+	if (no_check_acl == false)
 	{
-		// Apply the access list for forwarding
-		if (ApplyAccessListToForwardPacket(src->Hub, src, dest->Session, packet) == false)
+		if (src != NULL)
 		{
-			Free(data);
-			return;
+			// Apply the access list for forwarding
+			if (ApplyAccessListToForwardPacket(src->Hub, src, dest->Session, packet) == false)
+			{
+				Free(data);
+				return;
+			}
 		}
 	}
 
@@ -5194,7 +5308,7 @@ void StorePacketToHubPa(HUB_PA *dest, SESSION *src, void *data, UINT size, PKT *
 		}
 	}
 
-	if (src != NULL && src->Hub != NULL && src->Hub->Option != NULL && src->Hub->Option->FixForDLinkBPDU)
+	if (packet != NULL && src != NULL && src->Hub != NULL && src->Hub->Option != NULL && src->Hub->Option->FixForDLinkBPDU)
 	{
 		// Measures for D-Link bug
 		UCHAR *mac = packet->MacAddressSrc;
@@ -5208,7 +5322,7 @@ void StorePacketToHubPa(HUB_PA *dest, SESSION *src, void *data, UINT size, PKT *
 				if (session->Policy != NULL && session->Policy->CheckMac)
 				{
 					UCHAR hash[MD5_SIZE];
-					Hash(hash, packet->PacketData, packet->PacketSize, false);
+					Md5(hash, packet->PacketData, packet->PacketSize);
 
 					Copy(session->LastDLinkSTPPacketDataHash, hash, MD5_SIZE);
 					session->LastDLinkSTPPacketSendTick = Tick64();
@@ -5232,7 +5346,7 @@ void StorePacketToHubPa(HUB_PA *dest, SESSION *src, void *data, UINT size, PKT *
 		}
 	}
 
-	if (dest != NULL && src != NULL && dest->Session != NULL && src->Hub != NULL && src->Hub->Option != NULL)
+	if (src != NULL && dest->Session != NULL && src->Hub != NULL && src->Hub->Option != NULL)
 	{
 		if (dest->Session->AdjustMss != 0 ||
 			(dest->Session->IsUsingUdpAcceleration && dest->Session->UdpAccelMss != 0) ||
@@ -5271,11 +5385,19 @@ void StorePacketToHubPa(HUB_PA *dest, SESSION *src, void *data, UINT size, PKT *
 	LockQueue(dest->PacketQueue);
 	{
 		// Measure the length of queue
-		if ((dest->PacketQueue->num_item < MAX_STORED_QUEUE_NUM) ||
-			(((UCHAR *)data)[12] == 'S' && ((UCHAR *)data)[13] == 'E'))
+		if (dest->PacketQueue->num_item < MAX_STORED_QUEUE_NUM)
 		{
 			// Store
 			InsertQueue(dest->PacketQueue, b);
+
+			if (is_flooding)
+			{
+				if (src != NULL)
+				{
+					b->IsFlooding = true;
+					CedarAddCurrentTcpQueueSize(src->Cedar, b->Size);
+				}
+			}
 		}
 		else
 		{
@@ -5331,7 +5453,7 @@ bool StorePacketFilterByPolicy(SESSION *s, PKT *p)
 
 	hub = s->Hub;
 
-	if (hub->Option != NULL)
+	if (hub != NULL && hub->Option != NULL)
 	{
 		no_heavy = hub->Option->DoNotSaveHeavySecurityLogs;
 	}
@@ -5602,7 +5724,7 @@ bool StorePacketFilterByPolicy(SESSION *s, PKT *p)
 						MAC_TABLE_ENTRY *mac_table, mt;
 						mt.VlanId = 0;
 						Copy(&mt.MacAddress, &h->ClientMacAddress, 6);
-						mac_table = Search(hub->MacTable, &mt);
+						mac_table = SearchHash(hub->MacHashTable, &mt);
 
 						if (mac_table != NULL)
 						{
@@ -5632,10 +5754,8 @@ UPDATE_DHCP_ALLOC_ENTRY:
 										DeleteOldIpTableEntry(hub->IpTable);
 									}
 									Insert(hub->IpTable, e);
-								}
 
-								if (new_entry)
-								{
+								
 									if ((hub->Option != NULL && hub->Option->NoDhcpPacketLogOutsideHub == false) || mac_table->Session != s)
 									{
 										char dhcp_mac_addr[64];
@@ -5674,21 +5794,25 @@ UPDATE_DHCP_ALLOC_ENTRY:
 }
 
 // Delete the expired MAC table entries
-void DeleteExpiredMacTableEntry(LIST *o)
+void DeleteExpiredMacTableEntry(HASH_LIST *h)
 {
 	LIST *o2;
 	UINT i;
+	MAC_TABLE_ENTRY **pp;
+	UINT num;
 	// Validate arguments
-	if (o == NULL)
+	if (h == NULL)
 	{
 		return;
 	}
 
 	o2 = NewListFast(NULL);
 
-	for (i = 0;i < LIST_NUM(o);i++)
+	pp = (MAC_TABLE_ENTRY **)HashListToArray(h, &num);
+
+	for (i = 0;i < num;i++)
 	{
-		MAC_TABLE_ENTRY *e = LIST_DATA(o, i);
+		MAC_TABLE_ENTRY *e = pp[i];
 		if ((e->UpdatedTime + (UINT64)MAC_TABLE_EXPIRE_TIME) <= Tick64())
 		{
 			Add(o2, e);
@@ -5698,11 +5822,13 @@ void DeleteExpiredMacTableEntry(LIST *o)
 	for (i = 0;i < LIST_NUM(o2);i++)
 	{
 		MAC_TABLE_ENTRY *e = LIST_DATA(o2, i);
-		Delete(o, e);
+		DeleteHash(h, e);
 		Free(e);
 	}
 
 	ReleaseList(o2);
+
+	Free(pp);
 }
 
 // Delete the expired IP table entries
@@ -5802,7 +5928,7 @@ void IntoTrafficLimiter(TRAFFIC_LIMITER *tr, PKT *p)
 	}
 
 	// Value increase
-	tr->Value += (UINT64)(p->PacketSize * 8);
+	tr->Value += (UINT64)p->PacketSize * (UINT64)8;
 }
 
 // The bandwidth reduction by traffic limiter
@@ -6363,45 +6489,6 @@ void SetRadiusServerEx(HUB *hub, char *name, UINT port, char *secret, UINT inter
 	Unlock(hub->RadiusOptionLock);
 }
 
-// Get the difference between the traffic data
-void CalcTrafficEntryDiff(TRAFFIC_ENTRY *diff, TRAFFIC_ENTRY *old, TRAFFIC_ENTRY *current)
-{
-	// Validate arguments
-	Zero(diff, sizeof(TRAFFIC_ENTRY));
-	if (old == NULL || current == NULL || diff == NULL)
-	{
-		return;
-	}
-
-	if (current->BroadcastCount >= old->BroadcastCount)
-	{
-		diff->BroadcastCount = current->BroadcastCount - old->BroadcastCount;
-	}
-	if (current->BroadcastBytes >= old->BroadcastBytes)
-	{
-		diff->BroadcastBytes = current->BroadcastBytes - old->BroadcastBytes;
-	}
-	if (current->UnicastCount >= old->UnicastCount)
-	{
-		diff->UnicastCount = current->UnicastCount - old->UnicastCount;
-	}
-	if (current->UnicastBytes >= old->UnicastBytes)
-	{
-		diff->UnicastBytes = current->UnicastBytes - old->UnicastBytes;
-	}
-}
-void CalcTrafficDiff(TRAFFIC *diff, TRAFFIC *old, TRAFFIC *current)
-{
-	Zero(diff, sizeof(TRAFFIC));
-	if (old == NULL || current == NULL || diff == NULL)
-	{
-		return;
-	}
-
-	CalcTrafficEntryDiff(&diff->Send, &old->Send, &current->Send);
-	CalcTrafficEntryDiff(&diff->Recv, &old->Recv, &current->Recv);
-}
-
 // Add the traffic information for Virtual HUB
 void IncrementHubTraffic(HUB *h)
 {
@@ -6504,7 +6591,7 @@ void CleanupHub(HUB *h)
 	DeleteLock(h->lock_online);
 	Free(h->Name);
 	ReleaseList(h->SessionList);
-	ReleaseList(h->MacTable);
+	ReleaseHashList(h->MacHashTable);
 	ReleaseList(h->IpTable);
 	ReleaseList(h->MonitorList);
 	ReleaseList(h->LinkList);
@@ -6563,6 +6650,24 @@ int CompareIpTable(void *p1, void *p2)
 		return 0;
 	}
 	return CmpIpAddr(&e1->Ip, &e2->Ip);
+}
+
+// Get hash of MAC table entry
+UINT GetHashOfMacTable(void *p)
+{
+	UINT v;
+	MAC_TABLE_ENTRY *e = p;
+
+	if (e == NULL)
+	{
+		return 0;
+	}
+
+	v = e->MacAddress[0] + e->MacAddress[1] + e->MacAddress[2] + 
+		e->MacAddress[3] + e->MacAddress[4] + e->MacAddress[5] + 
+		e->VlanId;
+
+	return v;
 }
 
 // Comparison function of the MAC table entries
@@ -6647,11 +6752,13 @@ bool IsHubIpAddress(IP *ip)
 		return false;
 	}
 
-	if (ip->addr[0] == 172 && ip->addr[1] == 31)
+	const BYTE *ipv4 = IPV4(ip->address);
+
+	if (ipv4[0] == 172 && ipv4[1] == 31)
 	{
-		if (ip->addr[2] >= 1 && ip->addr[2] <= 254)
+		if (ipv4[2] >= 1 && ipv4[2] <= 254)
 		{
-			if (ip->addr[3] >= 1 && ip->addr[3] <= 254)
+			if (ipv4[3] >= 1 && ipv4[3] <= 254)
 			{
 				return true;
 			}
@@ -6703,13 +6810,9 @@ void GenHubIpAddress(IP *ip, char *name)
 	StrCat(tmp2, sizeof(tmp2), tmp1);
 	StrUpper(tmp2);
 
-	Hash(hash, tmp2, StrLen(tmp2), true);
+	Sha0(hash, tmp2, StrLen(tmp2));
 
-	Zero(ip, sizeof(IP));
-	ip->addr[0] = 172;
-	ip->addr[1] = 31;
-	ip->addr[2] = hash[0] % 254 + 1;
-	ip->addr[3] = hash[1] % 254 + 1;
+	SetIP(ip, 172, 31, hash[0] % 254 + 1, hash[0] % 254 + 1);
 }
 
 // Generate a MAC address for the Virtual HUB
@@ -6731,7 +6834,7 @@ void GenHubMacAddress(UCHAR *mac, char *name)
 	StrCat(tmp2, sizeof(tmp2), tmp1);
 	StrUpper(tmp2);
 
-	Hash(hash, tmp2, StrLen(tmp2), true);
+	Sha0(hash, tmp2, StrLen(tmp2));
 
 	mac[0] = 0x00;
 	mac[1] = SE_HUB_MAC_ADDR_SIGN;
@@ -6804,7 +6907,7 @@ HUB *NewHub(CEDAR *cedar, char *HubName, HUB_OPTION *option)
 	}
 
 	h = ZeroMalloc(sizeof(HUB));
-	Hash(h->HashedPassword, "", 0, true);
+	Sha0(h->HashedPassword, "", 0);
 	HashPassword(h->SecurePassword, ADMINISTRATOR_USERNAME, "");
 	h->lock = NewLock();
 	h->lock_online = NewLock();
@@ -6833,7 +6936,7 @@ HUB *NewHub(CEDAR *cedar, char *HubName, HUB_OPTION *option)
 	h->NumSessions = NewCounter();
 	h->NumSessionsClient = NewCounter();
 	h->NumSessionsBridge = NewCounter();
-	h->MacTable = NewList(CompareMacTable);
+	h->MacHashTable = NewHashList(GetHashOfMacTable, CompareMacTable, 8, false);
 	h->IpTable = NewList(CompareIpTable);
 	h->MonitorList = NewList(NULL);
 	h->LinkList = NewList(NULL);
@@ -6848,6 +6951,9 @@ HUB *NewHub(CEDAR *cedar, char *HubName, HUB_OPTION *option)
 	{
 		h->Option->VlanTypeId = MAC_PROTO_TAGVLAN;
 	}
+
+	h->Option->DropBroadcastsInPrivacyFilterMode = true;
+	h->Option->DropArpInPrivacyFilterMode = true;
 
 	Rand(h->HubSignature, sizeof(h->HubSignature));
 
@@ -7117,7 +7223,3 @@ HUBDB *NewHubDb()
 }
 
 
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/

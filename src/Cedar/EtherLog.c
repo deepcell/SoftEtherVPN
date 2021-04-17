@@ -1,87 +1,28 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Cedar Communication Module
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2014 Daiyuu Nobori.
-// Copyright (c) 2012-2014 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2014 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE IT IN OTHER COUNTRIES. IMPORTING THIS
-// SOFTWARE INTO OTHER COUNTRIES IS AT YOUR OWN RISK. SOME COUNTRIES
-// PROHIBIT ENCRYPTED COMMUNICATIONS. USING THIS SOFTWARE IN OTHER
-// COUNTRIES MIGHT BE RESTRICTED.
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
 
 
 // EtherLog.c
 // EtherLogger program
 
-#include "CedarPch.h"
+#include "EtherLog.h"
+
+#include "Admin.h"
+#include "BridgeUnix.h"
+#include "BridgeWin32.h"
+#include "Listener.h"
+#include "Remote.h"
+#include "Sam.h"
+#include "Server.h"
+#include "WinUi.h"
+
+#include "Mayaqua/Cfg.h"
+#include "Mayaqua/Encrypt.h"
+#include "Mayaqua/Memory.h"
+#include "Mayaqua/Object.h"
+#include "Mayaqua/OS.h"
+#include "Mayaqua/Pack.h"
+#include "Mayaqua/Str.h"
 
 static LOCK *el_lock = NULL;
 static EL *el = NULL;
@@ -206,11 +147,11 @@ UINT EcConnect(char *host, UINT port, char *password, RPC **rpc)
 	SetTimeout(s, 5000);
 
 	// Hash the password
-	Hash(password_hash, password, StrLen(password), true);
+	Sha0(password_hash, password, StrLen(password));
 
 	// Receive the random number
 	Zero(rand, sizeof(rand));
-	RecvAll(s, rand, sizeof(rand), false);
+	(void)RecvAll(s, rand, sizeof(rand), false);
 	SecurePassword(response, password_hash, rand);
 
 	// Send a response
@@ -246,16 +187,17 @@ UINT EcConnect(char *host, UINT port, char *password, RPC **rpc)
 // RPC server function
 PACK *ElRpcServer(RPC *r, char *name, PACK *p)
 {
-	EL *e = (EL *)r->Param;
+	EL *e;
 	PACK *ret;
 	UINT err;
 	bool ok;
 	// Validate arguments
-	if (r == NULL || name == NULL || p == NULL || e == NULL)
+	if (r == NULL || name == NULL || p == NULL || r->Param == NULL)
 	{
 		return NULL;
 	}
 
+	e = (EL *)r->Param;
 	ret = NewPack();
 	err = ERR_NO_ERROR;
 	ok = false;
@@ -293,7 +235,6 @@ DECLARE_SC("GetDevice", RPC_ADD_DEVICE, EcGetDevice, InRpcAddDevice, OutRpcAddDe
 DECLARE_SC_EX("EnumDevice", RPC_ENUM_DEVICE, EcEnumDevice, InRpcEnumDevice, OutRpcEnumDevice, FreeRpcEnumDevice)
 DECLARE_SC("SetPassword", RPC_SET_PASSWORD, EcSetPassword, InRpcSetPassword, OutRpcSetPassword)
 DECLARE_SC_EX("EnumAllDevice", RPC_ENUM_DEVICE, EcEnumAllDevice, InRpcEnumDevice, OutRpcEnumDevice, FreeRpcEnumDevice)
-DECLARE_SC("AddLicenseKey", RPC_TEST, EcAddLicenseKey, InRpcTest, OutRpcTest)
 DECLARE_SC("DelLicenseKey", RPC_TEST, EcDelLicenseKey, InRpcTest, OutRpcTest)
 DECLARE_SC_EX("EnumLicenseKey", RPC_ENUM_LICENSE_KEY, EcEnumLicenseKey, InRpcEnumLicenseKey, OutRpcEnumLicenseKey, FreeRpcEnumLicenseKey)
 DECLARE_SC("GetLicenseStatus", RPC_EL_LICENSE_STATUS, EcGetLicenseStatus, InRpcElLicenseStatus, OutRpcElLicenseStatus)
@@ -348,11 +289,6 @@ UINT EtGetBridgeSupport(EL *a, RPC_BRIDGE_SUPPORT *t)
 	t->IsWinPcapNeeded = IsNeedWinPcap();
 
 	return ERR_NO_ERROR;
-}
-
-// Update the status by checking the all licenses
-void ElCheckLicense(EL_LICENSE_STATUS *st, LICENSE *e)
-{
 }
 
 // Save by analyzing the status of the current license
@@ -414,7 +350,7 @@ UINT EtSetPassword(EL *e, RPC_SET_PASSWORD *t)
 // Add a device
 UINT EtAddDevice(EL *e, RPC_ADD_DEVICE *t)
 {
-	if (ElAddCaptureDevice(e, t->DeviceName, &t->LogSetting, t->NoPromiscus) == false)
+	if (ElAddCaptureDevice(e, t->DeviceName, &t->LogSetting, t->NoPromiscuous) == false)
 	{
 		return ERR_CAPTURE_DEVICE_ADD_ERROR;
 	}
@@ -455,7 +391,7 @@ UINT EtGetDevice(EL *e, RPC_ADD_DEVICE *t)
 			ret = ERR_NO_ERROR;
 
 			Copy(&t->LogSetting, &d->LogSetting, sizeof(HUB_LOG));
-			t->NoPromiscus = d->NoPromiscus;
+			t->NoPromiscuous = d->NoPromiscuous;
 		}
 	}
 	UnlockList(e->DeviceList);
@@ -553,7 +489,7 @@ void InRpcAddDevice(RPC_ADD_DEVICE *t, PACK *p)
 
 	Zero(t, sizeof(RPC_ADD_DEVICE));
 	PackGetStr(p, "DeviceName", t->DeviceName, sizeof(t->DeviceName));
-	t->NoPromiscus = PackGetInt(p, "NoPromiscus");
+	t->NoPromiscuous = PackGetInt(p, "NoPromiscuous");
 	t->LogSetting.PacketLogSwitchType = PackGetInt(p, "PacketLogSwitchType");
 
 	for (i = 0;i < NUM_PACKET_LOG;i++)
@@ -572,7 +508,7 @@ void OutRpcAddDevice(PACK *p, RPC_ADD_DEVICE *t)
 	}
 
 	PackAddStr(p, "DeviceName", t->DeviceName);
-	PackAddInt(p, "NoPromiscus", t->NoPromiscus);
+	PackAddInt(p, "NoPromiscuous", t->NoPromiscuous);
 	PackAddInt(p, "PacketLogSwitchType", t->LogSetting.PacketLogSwitchType);
 
 	for (i = 0;i < NUM_PACKET_LOG;i++)
@@ -639,6 +575,7 @@ void OutRpcEnumDevice(PACK *p, RPC_ENUM_DEVICE *t)
 
 	PackAddInt(p, "NumItem", t->NumItem);
 
+	PackSetCurrentJsonGroupName(p, "DeviceList");
 	for (i = 0;i < t->NumItem;i++)
 	{
 		RPC_ENUM_DEVICE_ITEM *d = &t->Items[i];
@@ -646,6 +583,7 @@ void OutRpcEnumDevice(PACK *p, RPC_ENUM_DEVICE *t)
 		PackAddStrEx(p, "DeviceName", d->DeviceName, i, t->NumItem);
 		PackAddBoolEx(p, "Active", d->Active, i, t->NumItem);
 	}
+	PackSetCurrentJsonGroupName(p, NULL);
 
 	PackAddBool(p, "IsLicenseSupported", t->IsLicenseSupported);
 }
@@ -686,7 +624,7 @@ void OutRpcElLicenseStatus(PACK *p, RPC_EL_LICENSE_STATUS *t)
 
 	PackAddBool(p, "Valid", t->Valid);
 	PackAddInt64(p, "SystemId", t->SystemId);
-	PackAddInt64(p, "SystemExpires", t->SystemExpires);
+	PackAddTime64(p, "SystemExpires", t->SystemExpires);
 }
 
 // Listener thread
@@ -724,7 +662,7 @@ void ElListenerProc(THREAD *thread, void *param)
 	// Receive a response
 	SecurePassword(pass1, e->HashedPassword, rand);
 	Zero(pass2, sizeof(pass2));
-	RecvAll(s, pass2, sizeof(pass2), false);
+	(void)RecvAll(s, pass2, sizeof(pass2), false);
 
 	if (Cmp(pass1, pass2, SHA1_SIZE) != 0)
 	{
@@ -939,7 +877,7 @@ bool ElDeleteCaptureDevice(EL *e, char *name)
 }
 
 // Add a capture device
-bool ElAddCaptureDevice(EL *e, char *name, HUB_LOG *log, bool no_promiscus)
+bool ElAddCaptureDevice(EL *e, char *name, HUB_LOG *log, bool no_promiscuous)
 {
 	EL_DEVICE *d, t;
 	// Validate arguments
@@ -965,7 +903,7 @@ bool ElAddCaptureDevice(EL *e, char *name, HUB_LOG *log, bool no_promiscus)
 		d = ZeroMalloc(sizeof(EL_DEVICE));
 		StrCpy(d->DeviceName, sizeof(d->DeviceName), name);
 		Copy(&d->LogSetting, log, sizeof(HUB_LOG));
-		d->NoPromiscus = no_promiscus;
+		d->NoPromiscuous = no_promiscuous;
 		d->el = e;
 		Insert(e->DeviceList, d);
 
@@ -1061,7 +999,7 @@ void ElSaveConfigToFolder(EL *e, FOLDER *root)
 
 			f = CfgCreateFolder(devices, d->DeviceName);
 			SiWriteHubLogCfgEx(f, &d->LogSetting, true);
-			CfgAddBool(f, "NoPromiscusMode", d->NoPromiscus);
+			CfgAddBool(f, "NoPromiscuousMode", d->NoPromiscuous);
 		}
 	}
 	UnlockList(e->DeviceList);
@@ -1102,7 +1040,7 @@ void ElLoadConfigFromFolder(EL *e, FOLDER *root)
 
 	if (CfgGetByte(root, "AdminPassword", e->HashedPassword, sizeof(e->HashedPassword)) != sizeof(e->HashedPassword))
 	{
-		Hash(e->HashedPassword, "", 0, true);
+		Sha0(e->HashedPassword, "", 0);
 	}
 
 	if (ELOG_IS_BETA == false)
@@ -1127,7 +1065,7 @@ void ElLoadConfigFromFolder(EL *e, FOLDER *root)
 
 					Zero(&g, sizeof(g));
 					SiLoadHubLogCfg(&g, f);
-					ElAddCaptureDevice(e, name, &g, CfgGetBool(f, "NoPromiscusMode"));
+					ElAddCaptureDevice(e, name, &g, CfgGetBool(f, "NoPromiscuousMode"));
 				}
 			}
 			FreeToken(t);
@@ -1160,7 +1098,7 @@ bool ElLoadConfig(EL *e)
 	else
 	{
 		char *pass = "";
-		Hash(e->HashedPassword, pass, StrLen(pass), true);
+		Sha0(e->HashedPassword, pass, StrLen(pass));
 		e->AutoDeleteCheckDiskFreeSpaceMin = DISK_FREE_SPACE_DEFAULT;
 	}
 
@@ -1335,22 +1273,3 @@ void ElStop()
 	Unlock(el_lock);
 }
 
-// EL initialization
-void ElInit()
-{
-	// Lock initialization
-	el_lock = NewLock();
-}
-
-// EL release
-void ElFree()
-{
-	// Lock release
-	DeleteLock(el_lock);
-	el_lock = NULL;
-}
-
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/

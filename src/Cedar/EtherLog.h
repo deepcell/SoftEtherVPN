@@ -1,81 +1,5 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Cedar Communication Module
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2014 Daiyuu Nobori.
-// Copyright (c) 2012-2014 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2014 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE IT IN OTHER COUNTRIES. IMPORTING THIS
-// SOFTWARE INTO OTHER COUNTRIES IS AT YOUR OWN RISK. SOME COUNTRIES
-// PROHIBIT ENCRYPTED COMMUNICATIONS. USING THIS SOFTWARE IN OTHER
-// COUNTRIES MIGHT BE RESTRICTED.
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
 
 
 // EtherLog.h
@@ -83,6 +7,8 @@
 
 #ifndef	ETHERLOG_H
 #define	ETHERLOG_H
+
+#include "Hub.h"
 
 // Whether this is a beta version
 #define	ELOG_IS_BETA						true
@@ -103,7 +29,7 @@ struct RPC_ADD_DEVICE
 {
 	char DeviceName[MAX_SIZE];			// Device name
 	HUB_LOG LogSetting;					// Log settings
-	bool NoPromiscus;					// Without promiscuous mode
+	bool NoPromiscuous;					// Without promiscuous mode
 };
 
 struct RPC_DELETE_DEVICE
@@ -127,7 +53,7 @@ struct RPC_ENUM_DEVICE
 // License status of the service
 struct RPC_EL_LICENSE_STATUS
 {
-	BOOL Valid;								// Enable flag
+	bool Valid;								// Enable flag
 	UINT64 SystemId;						// System ID
 	UINT64 SystemExpires;					// System expiration date
 };
@@ -143,14 +69,14 @@ struct EL_DEVICE
 	CANCEL *Cancel2;					// Cancel 2
 	volatile bool Halt;					// Halting flag
 	bool Active;						// Running flag
-	bool NoPromiscus;					// Without promiscuous mode
+	bool NoPromiscuous;					// Without promiscuous mode
 	LOG *Logger;						// Logger
 };
 
 // License status
 struct EL_LICENSE_STATUS
 {
-	BOOL Valid;				// Enable flag
+	bool Valid;				// Enable flag
 	UINT64 SystemId;		// System ID
 	UINT64 Expires;			// Expiration date
 };
@@ -175,8 +101,6 @@ struct EL
 };
 
 // Function prototype
-void ElInit();
-void ElFree();
 void ElStart();
 void ElStop();
 EL *NewEl();
@@ -189,7 +113,7 @@ void ElLoadConfigFromFolder(EL *e, FOLDER *root);
 void ElSaveConfig(EL *e);
 void ElSaveConfigToFolder(EL *e, FOLDER *root);
 int ElCompareDevice(void *p1, void *p2);
-bool ElAddCaptureDevice(EL *e, char *name, HUB_LOG *log, bool no_promiscus);
+bool ElAddCaptureDevice(EL *e, char *name, HUB_LOG *log, bool no_promiscuous);
 bool ElDeleteCaptureDevice(EL *e, char *name);
 bool ElSetCaptureDeviceLogSetting(EL *e, char *name, HUB_LOG *log);
 void ElCaptureThread(THREAD *thread, void *param);
@@ -197,7 +121,6 @@ void ElStartListener(EL *e);
 void ElStopListener(EL *e);
 void ElListenerProc(THREAD *thread, void *param);
 PACK *ElRpcServer(RPC *r, char *name, PACK *p);
-void ElCheckLicense(EL_LICENSE_STATUS *st, LICENSE *e);
 void ElParseCurrentLicenseStatus(LICENSE_SYSTEM *s, EL_LICENSE_STATUS *st);
 bool ElIsBetaExpired();
 
@@ -223,7 +146,6 @@ UINT EcGetDevice(RPC *r, RPC_ADD_DEVICE *t);
 UINT EcEnumDevice(RPC *r, RPC_ENUM_DEVICE *t);
 UINT EcEnumAllDevice(RPC *r, RPC_ENUM_DEVICE *t);
 UINT EcSetPassword(RPC *r, RPC_SET_PASSWORD *t);
-UINT EcAddLicenseKey(RPC *r, RPC_TEST *t);
 UINT EcDelLicenseKey(RPC *r, RPC_TEST *t);
 UINT EcEnumLicenseKey(RPC *r, RPC_ENUM_LICENSE_KEY *t);
 UINT EcGetLicenseStatus(RPC *r, RPC_EL_LICENSE_STATUS *t);
@@ -249,7 +171,3 @@ void OutRpcElLicenseStatus(PACK *p, RPC_EL_LICENSE_STATUS *t);
 #endif	// ETHERLOG_H
 
 
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/

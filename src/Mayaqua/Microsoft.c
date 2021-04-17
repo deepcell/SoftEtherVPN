@@ -1,159 +1,72 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Mayaqua Kernel
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2014 Daiyuu Nobori.
-// Copyright (c) 2012-2014 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2014 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE IT IN OTHER COUNTRIES. IMPORTING THIS
-// SOFTWARE INTO OTHER COUNTRIES IS AT YOUR OWN RISK. SOME COUNTRIES
-// PROHIBIT ENCRYPTED COMMUNICATIONS. USING THIS SOFTWARE IN OTHER
-// COUNTRIES MIGHT BE RESTRICTED.
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
 
 
 // Microsoft.c
 // For Microsoft Windows code
 // (not compiled on non-Windows environments)
 
-#include <GlobalConst.h>
-
-#ifdef	WIN32
+#ifdef OS_WIN32
 
 #define	MICROSOFT_C
 
-typedef enum    _PNP_VETO_TYPE {
-    PNP_VetoTypeUnknown,            // Name is unspecified
-    PNP_VetoLegacyDevice,           // Name is an Instance Path
-    PNP_VetoPendingClose,           // Name is an Instance Path
-    PNP_VetoWindowsApp,             // Name is a Module
-    PNP_VetoWindowsService,         // Name is a Service
-    PNP_VetoOutstandingOpen,        // Name is an Instance Path
-    PNP_VetoDevice,                 // Name is an Instance Path
-    PNP_VetoDriver,                 // Name is a Driver Service Name
-    PNP_VetoIllegalDeviceRequest,   // Name is an Instance Path
-    PNP_VetoInsufficientPower,      // Name is unspecified
-    PNP_VetoNonDisableable,         // Name is an Instance Path
-    PNP_VetoLegacyDriver,           // Name is a Service
-    PNP_VetoInsufficientRights      // Name is unspecified
-}   PNP_VETO_TYPE, *PPNP_VETO_TYPE;
+#include "Microsoft.h"
 
-#define	_WIN32_IE			0x0600
-#define	_WIN32_WINNT		0x0502
-#define	WINVER				0x0502
-#define   SECURITY_WIN32
-#include <winsock2.h>
-#include <windows.h>
-#include <Wintrust.h>
-#include <Softpub.h>
-#include <Iphlpapi.h>
-#include <ws2ipdef.h>
-#include <netioapi.h>
-#include <tlhelp32.h>
-#include <wincon.h>
-#include <Nb30.h>
-#include <shlobj.h>
-#include <commctrl.h>
-#include <Dbghelp.h>
-#include <setupapi.h>
-#include <regstr.h>
-#include <process.h>
-#include <psapi.h>
-#include <wtsapi32.h>
-#include <Ntsecapi.h>
-#include <security.h>
-#include <Msi.h>
-#include <Msiquery.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <wchar.h>
-#include <stdarg.h>
-#include <time.h>
-#include <errno.h>
-#include <Mayaqua/Mayaqua.h>
+#include "FileIO.h"
+#include "GlobalConst.h"
+#include "Internat.h"
+#include "Memory.h"
+#include "Object.h"
+#include "Str.h"
+#include "Table.h"
+#include "Tick64.h"
+#include "Win32.h"
+
+// TODO: Mayaqua should not depend on Cedar.
+#include <Cedar/Cedar.h>
+#include <Cedar/Client.h>
+#include <Cedar/CM.h>
+#include <Cedar/WinUi.h>
+
+#define SECURITY_WIN32
+
+// The struct is defined in Microsoft's <cfg.h>, but Mayaqua's one gets included instead.
+typedef enum _PNP_VETO_TYPE {
+	PNP_VetoTypeUnknown,            // Name is unspecified
+	PNP_VetoLegacyDevice,           // Name is an Instance Path
+	PNP_VetoPendingClose,           // Name is an Instance Path
+	PNP_VetoWindowsApp,             // Name is a Module
+	PNP_VetoWindowsService,         // Name is a Service
+	PNP_VetoOutstandingOpen,        // Name is an Instance Path
+	PNP_VetoDevice,                 // Name is an Instance Path
+	PNP_VetoDriver,                 // Name is a Driver Service Name
+	PNP_VetoIllegalDeviceRequest,   // Name is an Instance Path
+	PNP_VetoInsufficientPower,      // Name is unspecified
+	PNP_VetoNonDisableable,         // Name is an Instance Path
+	PNP_VetoLegacyDriver,           // Name is a Service
+	PNP_VetoInsufficientRights,     // Name is unspecified
+	PNP_VetoAlreadyRemoved,         // Name is unspecified
+} PNP_VETO_TYPE, *PPNP_VETO_TYPE;
+
+#include <AclAPI.h>
 #include <cfgmgr32.h>
+#include <DbgHelp.h>
+#include <dwmapi.h>
+#include <iphlpapi.h>
+#include <mmsystem.h>
+#include <Msi.h>
+#include <nb30.h>
+#include <newdev.h>
+#include <NTSecAPI.h>
+#include <Psapi.h>
 #include <sddl.h>
-#include <Aclapi.h>
+#include <security.h>
+#include <shellapi.h>
+#include <ShlObj.h>
+#include <SoftPub.h>
+#include <WtsApi32.h>
 
 static MS *ms = NULL;
-
-// Function prototype
-UINT MsgBox(HWND hWnd, UINT flag, wchar_t *msg);
-UINT MsgBoxEx(HWND hWnd, UINT flag, wchar_t *msg, ...);
-void ShowTcpIpConfigUtil(HWND hWnd, bool util_mode);
-void CmTraffic(HWND hWnd);
-void CnStart();
-void InitCedar();
-void FreeCedar();
-void InitWinUi(wchar_t *software_name, char *font, UINT fontsize);
-void FreeWinUi();
 
 // Global variable
 UINT64 ms_uint64_1 = 0;
@@ -175,16 +88,18 @@ static bool exiting = false;
 static bool wnd_end;
 static bool is_usermode = false;
 static HICON tray_icon;
-static NOTIFYICONDATA nid;
 static NOTIFYICONDATAW nid_nt;
-static bool service_for_9x_mode = false;
-static THREAD *service_stopper_thread = NULL;
 static bool tray_inited = false;
 static HWND hWndUsermode = NULL;
 static HANDLE hLsa = NULL;
 static ULONG lsa_package_id = 0;
 static TOKEN_SOURCE lsa_token_source;
 static LOCK *vlan_lock = NULL;
+static COUNTER *suspend_handler_singleton = NULL;
+static COUNTER *vlan_card_counter = NULL;
+static volatile BOOL vlan_card_should_stop_flag = false;
+static volatile BOOL vlan_is_in_suspend_mode = false;
+static volatile UINT64 vlan_suspend_mode_begin_tick = 0;
 
 // msi.dll
 static HINSTANCE hMsi = NULL;
@@ -192,41 +107,6 @@ static UINT (WINAPI *_MsiGetProductInfoW)(LPCWSTR, LPCWSTR, LPWSTR, LPDWORD) = N
 static UINT (WINAPI *_MsiConfigureProductW)(LPCWSTR, int, INSTALLSTATE) = NULL;
 static INSTALLUILEVEL (WINAPI *_MsiSetInternalUI)(INSTALLUILEVEL, HWND *) = NULL;
 static INSTALLSTATE (WINAPI *_MsiLocateComponentW)(LPCWSTR, LPWSTR, LPDWORD) = NULL;
-
-#define SE_GROUP_INTEGRITY                 (0x00000020L)
-
-typedef enum _TOKEN_INFORMATION_CLASS_VISTA
-{
-	VistaTokenUser = 1,
-	VistaTokenGroups,
-	VistaTokenPrivileges,
-	VistaTokenOwner,
-	VistaTokenPrimaryGroup,
-	VistaTokenDefaultDacl,
-	VistaTokenSource,
-	VistaTokenType,
-	VistaTokenImpersonationLevel,
-	VistaTokenStatistics,
-	VistaTokenRestrictedSids,
-	VistaTokenSessionId,
-	VistaTokenGroupsAndPrivileges,
-	VistaTokenSessionReference,
-	VistaTokenSandBoxInert,
-	VistaTokenAuditPolicy,
-	VistaTokenOrigin,
-	VistaTokenElevationType,
-	VistaTokenLinkedToken,
-	VistaTokenElevation,
-	VistaTokenHasRestrictions,
-	VistaTokenAccessInformation,
-	VistaTokenVirtualizationAllowed,
-	VistaTokenVirtualizationEnabled,
-	VistaTokenIntegrityLevel,
-	VistaTokenUIAccess,
-	VistaTokenMandatoryPolicy,
-	VistaTokenLogonSid,
-	VistaMaxTokenInfoClass
-} TOKEN_INFORMATION_CLASS_VISTA, *PTOKEN_INFORMATION_CLASS_VISTA;
 
 typedef struct MS_MSCHAPV2_PARAMS
 {
@@ -236,6 +116,43 @@ typedef struct MS_MSCHAPV2_PARAMS
 	UCHAR ClientResponse24[24];
 	UCHAR ResponseBuffer[MAX_SIZE];
 } MS_MSCHAPV2_PARAMS;
+
+// The function which should be called once as soon as possible after the process is started
+void MsInitProcessCallOnce()
+{
+	// Mitigate the DLL injection attack
+	char system_dir[MAX_PATH];
+	char kernel32_path[MAX_PATH];
+	UINT len;
+	HINSTANCE hKernel32;
+
+	// Get the full path of kernel32.dll
+	memset(system_dir, 0, sizeof(system_dir));
+	GetSystemDirectory(system_dir, sizeof(system_dir));
+	len = lstrlenA(system_dir);
+	if (system_dir[len] == '\\')
+	{
+		system_dir[len] = 0;
+	}
+	wsprintfA(kernel32_path, "%s\\kernel32.dll", system_dir);
+
+	// Load kernel32.dll
+	hKernel32 = LoadLibraryA(kernel32_path);
+	if (hKernel32 != NULL)
+	{
+		BOOL (WINAPI *_SetDllDirectoryA)(LPCTSTR);
+
+		_SetDllDirectoryA = (BOOL (WINAPI *)(LPCTSTR))
+			GetProcAddress(hKernel32, "SetDllDirectoryA");
+
+		if (_SetDllDirectoryA != NULL)
+		{
+			_SetDllDirectoryA("");
+		}
+
+		FreeLibrary(hKernel32);
+	}
+}
 
 // Collect the information of the VPN software
 bool MsCollectVpnInfo(BUF *bat, char *tmpdir, char *svc_name, wchar_t *config_name, wchar_t *logdir_name)
@@ -368,7 +285,7 @@ bool MsSaveSystemInfo(wchar_t *dst_filename)
 	{
 		return false;
 	}
-	if (MsIsAdmin() == false || MsIsWin2000OrGreater() == false)
+	if (MsIsAdmin() == false)
 	{
 		return false;
 	}
@@ -501,16 +418,6 @@ bool MsIsInVmMain()
 	void *process;
 	bool ret = false;
 
-	if (MsIsNt() == false)
-	{
-		return false;
-	}
-
-	if (MsIsWin2000OrGreater() == false)
-	{
-		return false;
-	}
-
 	CombinePathW(bat_filename, sizeof(bat_filename), MsGetMyTempDirW(), L"detectvm.vbs");
 
 	if (DumpDataW(bat_data, StrLen(bat_data), bat_filename) == false)
@@ -568,7 +475,7 @@ void *MsGetCurrentModuleHandle()
 }
 
 // Resource enumeration procedure
-bool CALLBACK MsEnumResourcesInternalProc(HMODULE hModule, const char *type, char *name, LONG_PTR lParam)
+BOOL CALLBACK MsEnumResourcesInternalProc(HMODULE hModule, const char *type, char *name, LONG_PTR lParam)
 {
 	LIST *o = (LIST *)lParam;
 	// Validate arguments
@@ -638,19 +545,6 @@ UINT MsGetUserLocaleId()
 	return lcid_cache;
 }
 
-// Get the locale ID of the system
-UINT MsGetSystemLocaleId()
-{
-	static UINT lcid_cache = 0;
-
-	if (lcid_cache == 0)
-	{
-		lcid_cache = (UINT)GetSystemDefaultLCID();
-	}
-
-	return lcid_cache;
-}
-
 // Set a secure ACL to the specified file or directory
 bool MsSetFileSecureAcl(wchar_t *path)
 {
@@ -659,14 +553,6 @@ bool MsSetFileSecureAcl(wchar_t *path)
 	bool ret = false;
 	// Validate arguments
 	if (path == NULL)
-	{
-		return false;
-	}
-	if (ms->nt == NULL)
-	{
-		return false;
-	}
-	if (ms->nt->SetNamedSecurityInfoW == NULL || ms->nt->AddAccessAllowedAceEx == NULL)
 	{
 		return false;
 	}
@@ -683,10 +569,10 @@ bool MsSetFileSecureAcl(wchar_t *path)
 
 		if (InitializeAcl(acl, acl_size, 2))
 		{
-			if (ms->nt->AddAccessAllowedAceEx(acl, 2, CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE, GENERIC_ALL, sid_system) &&
-				ms->nt->AddAccessAllowedAceEx(acl, 2, CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE, GENERIC_ALL, sid_admin))
+			if (AddAccessAllowedAceEx(acl, 2, CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE, GENERIC_ALL, sid_system) &&
+				AddAccessAllowedAceEx(acl, 2, CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE, GENERIC_ALL, sid_admin))
 			{
-				if (ms->nt->SetNamedSecurityInfoW(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, NULL, NULL, acl, NULL) == ERROR_SUCCESS)
+				if (SetNamedSecurityInfoW(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, NULL, NULL, acl, NULL) == ERROR_SUCCESS)
 				{
 					ret = true;
 				}
@@ -707,45 +593,49 @@ void MsDisableWcmNetworkMinimize()
 {
 	MS_WCM_POLICY_VALUE v;
 	bool b;
-	if (ms->nt == NULL)
-	{
-		return;
-	}
-	if (ms->nt->WcmQueryProperty == NULL || ms->nt->WcmSetProperty == NULL || ms->nt->WcmFreeMemory == NULL || ms->nt->WcmGetProfileList == NULL)
-	{
-		return;
-	}
 
 	if (MsIsWindows8() == false)
 	{
 		return;
 	}
 
-	Zero(&v, sizeof(v));
-	v.fIsGroupPolicy = true;
-	v.fValue = false;
-	b = false;
-	ms->nt->WcmSetProperty(NULL, NULL, ms_wcm_global_property_minimize_policy, NULL, sizeof(v), (const BYTE *)&v);
-	ms->nt->WcmSetProperty(NULL, NULL, ms_wcm_global_property_minimize_policy, NULL, sizeof(b), (const BYTE *)&b);
+	HMODULE hWcmapi = LoadLibrary("wcmapi.dll");
+	if (!hWcmapi)
+	{
+		return;
+	}
+
+	typedef DWORD (WINAPI* PWCMSETPROPERTY)(const GUID *, LPCWSTR, MS_WCM_PROPERTY, PVOID, DWORD, const BYTE *);
+
+	PWCMSETPROPERTY WcmSetProperty = (PWCMSETPROPERTY)GetProcAddress(hWcmapi, "WcmSetProperty");
 
 	Zero(&v, sizeof(v));
 	v.fIsGroupPolicy = true;
 	v.fValue = false;
 	b = false;
-	ms->nt->WcmSetProperty(NULL, NULL, ms_wcm_global_property_domain_policy, NULL, sizeof(v), (const BYTE *)&v);
-	ms->nt->WcmSetProperty(NULL, NULL, ms_wcm_global_property_domain_policy, NULL, sizeof(b), (const BYTE *)&b);
+	WcmSetProperty(NULL, NULL, ms_wcm_global_property_minimize_policy, NULL, sizeof(v), (const BYTE *)&v);
+	WcmSetProperty(NULL, NULL, ms_wcm_global_property_minimize_policy, NULL, sizeof(b), (const BYTE *)&b);
+
+	Zero(&v, sizeof(v));
+	v.fIsGroupPolicy = true;
+	v.fValue = false;
+	b = false;
+	WcmSetProperty(NULL, NULL, ms_wcm_global_property_domain_policy, NULL, sizeof(v), (const BYTE *)&v);
+	WcmSetProperty(NULL, NULL, ms_wcm_global_property_domain_policy, NULL, sizeof(b), (const BYTE *)&b);
 
 	Zero(&v, sizeof(v));
 	v.fIsGroupPolicy = false;
 	v.fValue = false;
-	ms->nt->WcmSetProperty(NULL, NULL, ms_wcm_global_property_minimize_policy, NULL, sizeof(v), (const BYTE *)&v);
-	ms->nt->WcmSetProperty(NULL, NULL, ms_wcm_global_property_minimize_policy, NULL, sizeof(b), (const BYTE *)&b);
+	WcmSetProperty(NULL, NULL, ms_wcm_global_property_minimize_policy, NULL, sizeof(v), (const BYTE *)&v);
+	WcmSetProperty(NULL, NULL, ms_wcm_global_property_minimize_policy, NULL, sizeof(b), (const BYTE *)&b);
 
 	Zero(&v, sizeof(v));
 	v.fIsGroupPolicy = false;
 	v.fValue = false;
-	ms->nt->WcmSetProperty(NULL, NULL, ms_wcm_global_property_domain_policy, NULL, sizeof(v), (const BYTE *)&v);
-	ms->nt->WcmSetProperty(NULL, NULL, ms_wcm_global_property_domain_policy, NULL, sizeof(b), (const BYTE *)&b);
+	WcmSetProperty(NULL, NULL, ms_wcm_global_property_domain_policy, NULL, sizeof(v), (const BYTE *)&v);
+	WcmSetProperty(NULL, NULL, ms_wcm_global_property_domain_policy, NULL, sizeof(b), (const BYTE *)&b);
+
+	FreeLibrary(hWcmapi);
 }
 
 // Request the MS-CHAPv2 authentication to the LSA
@@ -762,7 +652,7 @@ bool MsPerformMsChapV2AuthByLsa(char *username, UCHAR *challenge8, UCHAR *client
 	DWORD sz;
 	void *profile_buffer = NULL;
 	LUID logon_id;
-	UINT profile_buffer_size = 0;
+	ULONG profile_buffer_size = 0;
 	UINT i;
 	HANDLE hLogon = NULL;
 	QUOTA_LIMITS q;
@@ -831,7 +721,7 @@ bool MsPerformMsChapV2AuthByLsa(char *username, UCHAR *challenge8, UCHAR *client
 	Zero(&logon_id, sizeof(logon_id));
 	Zero(&q, sizeof(q));
 
-	i = ms->nt->LsaLogonUser(hLsa, &origin, Network, lsa_package_id, m, m_size, NULL, &lsa_token_source,
+	i = LsaLogonUser(hLsa, &origin, Network, lsa_package_id, m, m_size, NULL, &lsa_token_source,
 		&profile_buffer, &profile_buffer_size, &logon_id, &hLogon, &q, &sub_status);
 
 	if (i == 0)
@@ -844,7 +734,7 @@ bool MsPerformMsChapV2AuthByLsa(char *username, UCHAR *challenge8, UCHAR *client
 
 			ret = true;
 
-			ms->nt->LsaFreeReturnBuffer(profile_buffer);
+			LsaFreeReturnBuffer(profile_buffer);
 		}
 		CloseHandle(hLogon);
 	}
@@ -928,20 +818,10 @@ void *MsOpenOrCreateGlobalPulse(char *name)
 	Trim(tmp);
 	StrUpper(tmp);
 
-	HashSha1(hash, name, StrLen(name));
+	Sha1(hash, name, StrLen(name));
 
 	BinToStr(tmp, sizeof(tmp), hash, sizeof(hash));
-
-	Format(tmp2, sizeof(tmp2), "GlobalPulse_%s", tmp);
-
-	if (OS_IS_WINDOWS_NT(GetOsInfo()->OsType))
-	{
-		if (GET_KETA(GetOsInfo()->OsType, 100) >= 2 ||
-			GetOsInfo()->OsType == OSTYPE_WINDOWS_NT_4_TERMINAL_SERVER)
-		{
-			Format(tmp2, sizeof(tmp2), "Global\\GlobalPulse_%s", tmp);
-		}
-	}
+	Format(tmp2, sizeof(tmp2), "Global\\GlobalPulse_%s", tmp);
 
 	h = CreateEvent(NULL, true, false, tmp2);
 
@@ -978,14 +858,7 @@ bool MsStartIPsecService()
 // Get the IPsec service name
 char *MsGetIPsecServiceName()
 {
-	char *svc_name = "PolicyAgent";
-
-	if (MsIsVista())
-	{
-		svc_name = "ikeext";
-	}
-
-	return svc_name;
+	return "ikeext";
 }
 
 // Initialize the global lock
@@ -1072,171 +945,13 @@ bool MsGetFileInformation(void *h, void *info)
 		return false;
 	}
 
-	if (MsIsNt() == false)
-	{
-		return false;
-	}
-
-	if (ms->nt->GetFileInformationByHandle == NULL)
-	{
-		return false;
-	}
-
-	return ms->nt->GetFileInformationByHandle(h, info);
+	return GetFileInformationByHandle(h, info);
 }
 
 // Set the shutdown parameters of the process
 void MsSetShutdownParameters(UINT level, UINT flag)
 {
-	if (MsIsNt() == false)
-	{
-		return;
-	}
-
-	if (ms->nt == false || ms->nt->SetProcessShutdownParameters == NULL)
-	{
-		return;
-	}
-
-	ms->nt->SetProcessShutdownParameters(level, flag);
-}
-
-// Get whether the version of the OS is Windows XP or Windows Vista or later
-bool MsIsWinXPOrWinVista()
-{
-	OS_INFO *info = GetOsInfo();
-	if (info == NULL)
-	{
-		return false;
-	}
-
-	if (OS_IS_WINDOWS_NT(info->OsType) == false)
-	{
-		return false;
-	}
-
-	if (GET_KETA(info->OsType, 100) >= 3)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-// Write to the event log
-bool MsWriteEventLog(void *p, UINT type, wchar_t *str)
-{
-	MS_EVENTLOG *g = (MS_EVENTLOG *)p;
-	wchar_t *strings[2];
-	UINT id = 0;
-	UINT typeapi = 0;
-	// Validate arguments
-	if (g == NULL || type >= 5 || str == NULL)
-	{
-		return false;
-	}
-
-	strings[0] = str;
-
-	switch (type)
-	{
-	case MS_EVENTLOG_TYPE_INFORMATION:
-		id = MS_RC_EVENTLOG_TYPE_INFORMATION;
-		typeapi = EVENTLOG_INFORMATION_TYPE;
-		break;
-
-	case MS_EVENTLOG_TYPE_WARNING:
-		id = MS_RC_EVENTLOG_TYPE_WARNING;
-		typeapi = EVENTLOG_WARNING_TYPE;
-		break;
-
-	case MS_EVENTLOG_TYPE_ERROR:
-		id = MS_RC_EVENTLOG_TYPE_ERROR;
-		typeapi = EVENTLOG_ERROR_TYPE;
-		break;
-	}
-
-	return ms->nt->ReportEventW(g->hEventLog, typeapi, 0, id, NULL, 1, 0, strings, NULL);
-}
-
-// Release of the event log
-void MsFreeEventLog(void *p)
-{
-	MS_EVENTLOG *g = (MS_EVENTLOG *)p;
-	// Validate arguments
-	if (g == NULL)
-	{
-		return;
-	}
-
-	ms->nt->DeregisterEventSource(g->hEventLog);
-
-	Free(g);
-}
-
-// Initialization of the event log
-void *MsInitEventLog(wchar_t *src_name)
-{
-	MS_EVENTLOG *g;
-	HANDLE h;
-	wchar_t keyname[MAX_PATH];
-	char keyname_a[MAX_PATH];
-	wchar_t *exename;
-	// Validate arguments
-	if (src_name == NULL)
-	{
-		return NULL;
-	}
-
-	// Write the key to the registry
-	exename = MsGetExeFileNameW();
-	UniFormat(keyname, sizeof(keyname),
-		L"SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s",
-		src_name);
-	UniToStr(keyname_a, sizeof(keyname_a), keyname);
-
-	MsRegWriteStrExpandExW(REG_LOCAL_MACHINE, keyname_a, "EventMessageFile",
-		exename, false);
-
-	MsRegWriteIntEx(REG_LOCAL_MACHINE, keyname_a, "TypesSupported", 7, false);
-
-	h = ms->nt->RegisterEventSourceW(NULL, src_name);
-	if (h == NULL)
-	{
-		return NULL;
-	}
-
-	g = ZeroMalloc(sizeof(MS_EVENTLOG));
-
-	g->hEventLog = h;
-
-	return (void *)g;
-}
-
-// Empty the clipboard
-void MsDeleteClipboard()
-{
-	OpenClipboard(NULL);
-
-	EmptyClipboard();
-
-	CloseClipboard();
-}
-
-// Get the process ID of the clipboard owner
-UINT MsGetClipboardOwnerProcessId()
-{
-	HWND hWnd = GetClipboardOwner();
-	DWORD pid = 0;
-
-	if (hWnd == NULL)
-	{
-		return 0;
-	}
-
-	GetWindowThreadProcessId(hWnd, &pid);
-
-	return pid;
+	SetProcessShutdownParameters(level, flag);
 }
 
 // Restart of MMCSS
@@ -1254,10 +969,6 @@ void MsRestartMMCSS()
 void MsSetMMCSSNetworkThrottlingEnable(bool enable)
 {
 	UINT value;
-	if (MsIsVista() == false)
-	{
-		return;
-	}
 
 	if (enable)
 	{
@@ -1279,10 +990,6 @@ void MsSetMMCSSNetworkThrottlingEnable(bool enable)
 bool MsIsMMCSSNetworkThrottlingEnabled()
 {
 	UINT value;
-	if (MsIsVista() == false)
-	{
-		return false;
-	}
 
 	if (MsRegIsKeyEx2(REG_LOCAL_MACHINE, MMCSS_PROFILE_KEYNAME, false, true) == false)
 	{
@@ -1303,234 +1010,6 @@ bool MsIsMMCSSNetworkThrottlingEnabled()
 	}
 
 	return false;
-}
-
-// Delete all the subkeys
-void MsRegDeleteSubkeys(UINT root, char *keyname, bool force32bit, bool force64bit)
-{
-	TOKEN_LIST *t;
-	UINT i;
-	// Validate arguments
-	if (keyname == NULL)
-	{
-		return;
-	}
-
-	t = MsRegEnumKeyEx2(root, keyname, force32bit, force64bit);
-	if (t == NULL)
-	{
-		return;
-	}
-
-	for (i = 0;i < t->NumTokens;i++)
-	{
-		char tmp[MAX_PATH];
-
-		Format(tmp, sizeof(tmp), "%s\\%s", keyname, t->Token[i]);
-
-		MsRegDeleteKeyEx2(root, tmp, force32bit, force64bit);
-	}
-
-	FreeToken(t);
-}
-
-// Convert the data in the buffer to the subkey of the registry
-void MsBufToRegSubkeys(UINT root, char *keyname, BUF *b, bool overwrite, bool force32bit, bool force64bit)
-{
-	UINT i;
-	UINT a;
-	UINT num_keys;
-	// Validate arguments
-	if (keyname == NULL || b == NULL)
-	{
-		return;
-	}
-
-	SeekBuf(b, 0, 0);
-
-	num_keys = ReadBufInt(b);
-
-	for (i = 0;i < num_keys;i++)
-	{
-		char subkeyname[MAX_PATH];
-		char fullkeyname[MAX_PATH];
-		UINT j;
-		UINT num_values;
-
-		Zero(subkeyname, sizeof(subkeyname));
-		ReadBufStr(b, subkeyname, sizeof(subkeyname));
-
-		Format(fullkeyname, sizeof(fullkeyname), "%s\\%s", keyname, subkeyname);
-
-		num_values = ReadBufInt(b);
-
-		for (j = 0;j < num_values;j++)
-		{
-			char valuename[MAX_PATH];
-			char data[MAX_SIZE];
-
-			Zero(valuename, sizeof(valuename));
-			ReadBufStr(b, valuename, sizeof(valuename));
-
-			a = ReadBufInt(b);
-
-			if (a == 0)
-			{
-				Zero(data, sizeof(data));
-				ReadBufStr(b, data, sizeof(data));
-
-				if (overwrite || MsRegIsValueEx2(root, fullkeyname, valuename, force32bit, force64bit) == false)
-				{
-					MsRegWriteStrEx2(root, fullkeyname, valuename, data, force32bit, force64bit);
-				}
-			}
-			else
-			{
-				if (overwrite || MsRegIsValueEx2(root, fullkeyname, valuename, force32bit, force64bit) == false)
-				{
-					MsRegWriteIntEx2(root, fullkeyname, valuename, ReadBufInt(b), force32bit, force64bit);
-				}
-			}
-		}
-	}
-}
-
-// Convert data in the registry subkey to the buffer
-BUF *MsRegSubkeysToBuf(UINT root, char *keyname, bool force32bit, bool force64bit)
-{
-	TOKEN_LIST *t;
-	UINT i;
-	BUF *b;
-	// Validate arguments
-	if (keyname == NULL)
-	{
-		return NULL;
-	}
-
-	t = MsRegEnumKeyEx2(root, keyname, force32bit, force64bit);
-
-	if (t == NULL)
-	{
-		return NULL;
-	}
-
-	b = NewBuf();
-
-	WriteBufInt(b, t->NumTokens);
-
-	for (i = 0;i < t->NumTokens;i++)
-	{
-		char *name = t->Token[i];
-		char tmp[MAX_PATH];
-		TOKEN_LIST *v;
-
-		Format(tmp, sizeof(tmp), "%s\\%s", keyname, name);
-
-		WriteBufStr(b, name);
-
-		v = MsRegEnumValueEx2(root, tmp, force32bit, force64bit);
-		if (v == NULL)
-		{
-			WriteBufInt(b, 0);
-		}
-		else
-		{
-			UINT j;
-
-			WriteBufInt(b, v->NumTokens);
-
-			for (j = 0;j < v->NumTokens;j++)
-			{
-				char *valuename = v->Token[j];
-				char *str;
-
-				WriteBufStr(b, valuename);
-
-				str = MsRegReadStrEx2(root, tmp, valuename, force32bit, force64bit);
-				if (str != NULL)
-				{
-					WriteBufInt(b, 0);
-					WriteBufStr(b, str);
-					Free(str);
-				}
-				else
-				{
-					WriteBufInt(b, 1);
-					WriteBufInt(b, MsRegReadIntEx2(root, tmp, valuename, force32bit, force64bit));
-				}
-			}
-
-			FreeToken(v);
-		}
-	}
-
-	FreeToken(t);
-
-	return b;
-}
-
-// Check whether the process of specified EXE file name exists
-bool MsIsProcessExists(char *exename)
-{
-	LIST *o;
-	bool ret = false;
-	UINT i;
-	// Validate arguments
-	if (exename == NULL)
-	{
-		return false;
-	}
-
-	o = MsGetProcessList();
-
-	for (i = 0;i < LIST_NUM(o);i++)
-	{
-		MS_PROCESS *proc = LIST_DATA(o, i);
-		char exe[MAX_PATH];
-
-		GetFileNameFromFilePath(exe, sizeof(exe), proc->ExeFilename);
-
-		if (StrCmpi(exename, exe) == 0)
-		{
-			ret = true;
-			break;
-		}
-	}
-
-	MsFreeProcessList(o);
-
-	return ret;
-}
-bool MsIsProcessExistsW(wchar_t *exename)
-{
-	LIST *o;
-	bool ret = false;
-	UINT i;
-	// Validate arguments
-	if (exename == NULL)
-	{
-		return false;
-	}
-
-	o = MsGetProcessList();
-
-	for (i = 0;i < LIST_NUM(o);i++)
-	{
-		MS_PROCESS *proc = LIST_DATA(o, i);
-		wchar_t exe[MAX_PATH];
-
-		GetFileNameFromFilePathW(exe, sizeof(exe), proc->ExeFilenameW);
-
-		if (UniStrCmpi(exename, exe) == 0)
-		{
-			ret = true;
-			break;
-		}
-	}
-
-	MsFreeProcessList(o);
-
-	return ret;
 }
 
 typedef struct _ASTAT_
@@ -1589,186 +1068,6 @@ UINT64 MsGetHiResCounter()
 	return ret;
 }
 
-// Whether the Welcome screen is used
-bool MsIsUseWelcomeLogin()
-{
-	UINT os_type;
-	if (MsIsNt() == false)
-	{
-		return false;
-	}
-
-	os_type = GetOsInfo()->OsType;
-
-	if (OS_IS_WINDOWS_NT(os_type))
-	{
-		if (GET_KETA(os_type, 100) == 3)
-		{
-			if (MsRegReadIntEx2(REG_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon",
-				"LogonType", false, true) == 0)
-			{
-				return false;
-			}
-			else
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-// Get a physical MAC address of the computer
-bool MsGetPhysicalMacAddress(void *address)
-{
-	// Validate arguments
-	if (address == NULL)
-	{
-		return false;
-	}
-
-	if (MsGetPhysicalMacAddressFromApi(address))
-	{
-		return true;
-	}
-
-	if (MsGetPhysicalMacAddressFromNetbios(address))
-	{
-		return true;
-	}
-
-	return false;
-}
-
-// Get the physical MAC address (from API)
-bool MsGetPhysicalMacAddressFromApi(void *address)
-{
-	MS_ADAPTER_LIST *o;
-	UINT i;
-	bool ret = false;
-	// Validate arguments
-	if (address == NULL)
-	{
-		return false;
-	}
-
-	Zero(address, 6);
-
-	o = MsCreateAdapterList();
-
-	for (i = 0;i < o->Num;i++)
-	{
-		MS_ADAPTER *a = o->Adapters[i];
-
-		if (a->AddressSize == 6 && a->Mtu == 1500)
-		{
-			bool b = false;
-			switch (a->Type)
-			{
-			case MIB_IF_TYPE_OTHER:
-			case MIB_IF_TYPE_ETHERNET:
-				b = true;
-				break;
-
-			case MIB_IF_TYPE_TOKENRING:
-			case MIB_IF_TYPE_FDDI:
-			case MIB_IF_TYPE_PPP:
-			case MIB_IF_TYPE_LOOPBACK:
-			case MIB_IF_TYPE_SLIP:
-				b = false;
-				break;
-
-			default:
-				b = true;
-				break;
-			}
-
-			if (b)
-			{
-				if (SearchStrEx(a->Title, "WAN", 0, false) == INFINITE)
-				{
-					if (a->Status == MIB_IF_OPER_STATUS_CONNECTED || a->Status == MIB_IF_OPER_STATUS_OPERATIONAL)
-					{
-						if (a->AddressSize == 6)
-						{
-							if (IsZero(a->Address, 6) == false)
-							{
-								if (Cmp(address, a->Address, 6) <= 0)
-								{
-									Copy(address, a->Address, 6);
-									ret = true;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	MsFreeAdapterList(o);
-
-	return ret;
-}
-
-// Get the physical MAC address (from NetBIOS)
-bool MsGetPhysicalMacAddressFromNetbios(void *address)
-{
-	NCB ncb;
-	UCHAR ret;
-	LANA_ENUM lenum;
-	UINT i;
-	ASTAT adapter;
-	bool b = false;
-	// Validate arguments
-	if (address == NULL)
-	{
-		return false;
-	}
-
-	Zero(&ncb, sizeof(ncb));
-	Zero(&lenum, sizeof(lenum));
-
-	ncb.ncb_command = NCBENUM;
-	ncb.ncb_buffer = (UCHAR *)&lenum;
-	ncb.ncb_length = sizeof(lenum);
-	ret = Netbios(&ncb);
-
-	Zero(address, 6);
-
-	for (i = 0;i < lenum.length;i++)
-	{
-		Zero(&ncb, sizeof(ncb));
-		ncb.ncb_command = NCBRESET;
-		ncb.ncb_lana_num = lenum.lana[i];
-
-		ret = Netbios(&ncb);
-
-		Zero(&ncb, sizeof(ncb));
-		ncb.ncb_command = NCBASTAT;
-		ncb.ncb_lana_num = lenum.lana[i];
-
-		StrCpy(ncb.ncb_callname, sizeof(ncb.ncb_callname), "*               ");
-		Zero(&adapter, sizeof(adapter));
-		ncb.ncb_buffer = (char *)&adapter;
-		ncb.ncb_length = sizeof(adapter);
-
-		ret = Netbios(&ncb);
-
-		if (ret == 0)
-		{
-			if (Cmp(address, adapter.adapt.adapter_address, 6) <= 0)
-			{
-				Copy(address, adapter.adapt.adapter_address, 6);
-				b = true;
-			}
-		}
-	}
-
-	return b;
-}
-
 // System-wide updating notification
 void MsUpdateSystem()
 {
@@ -1792,113 +1091,11 @@ void MsUpdateSystem()
 	SleepThread(25);
 }
 
-// Get whether the specified path points to a local drive
-bool MsIsLocalDrive(char *name)
-{
-	char tmp[MAX_PATH];
-	UINT ret;
-
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	Zero(tmp, sizeof(tmp));
-	InnerFilePath(tmp, sizeof(tmp), name);
-
-	if (StartWith(tmp, "\\\\"))
-	{
-		// Network directory
-		return false;
-	}
-
-	if (tmp[1] != ':' || tmp[2] != '\\')
-	{
-		// Not a drive letter
-		return false;
-	}
-
-	tmp[3] = 0;
-
-	ret = GetDriveType(tmp);
-
-	if (ret == DRIVE_REMOTE || ret == DRIVE_CDROM || ret == DRIVE_RAMDISK)
-	{
-		return false;
-	}
-
-	return true;
-}
-bool MsIsLocalDriveW(wchar_t *name)
-{
-	char name_a[MAX_PATH];
-
-	UniToStr(name_a, sizeof(name_a), name);
-
-	return MsIsLocalDrive(name_a);
-}
-
-// Get whether the specified file is locked
-bool MsIsFileLocked(char *name)
-{
-	HANDLE h;
-	char tmp[MAX_PATH];
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	InnerFilePath(tmp, sizeof(tmp), name);
-
-	h = CreateFile(tmp, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, NULL);
-	if (h == INVALID_HANDLE_VALUE)
-	{
-		return true;
-	}
-
-	CloseHandle(h);
-
-	return false;
-}
-bool MsIsFileLockedW(wchar_t *name)
-{
-	HANDLE h;
-	wchar_t tmp[MAX_PATH];
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	if (IsNt() == false)
-	{
-		char name_a[MAX_SIZE];
-
-		UniToStr(name_a, sizeof(name_a), name);
-
-		return MsIsFileLocked(name_a);
-	}
-
-	InnerFilePathW(tmp, sizeof(tmp), name);
-
-	h = CreateFileW(tmp, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, NULL);
-	if (h == INVALID_HANDLE_VALUE)
-	{
-		return true;
-	}
-
-	CloseHandle(h);
-
-	return false;
-}
-
 // Wait for the process termination
 UINT MsWaitProcessExit(void *process_handle)
 {
 	HANDLE h = (HANDLE)process_handle;
-	UINT ret = 1;
+	DWORD ret = 1;
 
 	if (h == NULL)
 	{
@@ -1958,10 +1155,6 @@ bool MsExecuteEx2(char *exe, char *arg, void **process_handle, bool runas)
 	*process_handle = (void *)h;
 
 	return true;
-}
-bool MsExecuteExW(wchar_t *exe, wchar_t *arg, void **process_handle)
-{
-	return MsExecuteEx2W(exe, arg, process_handle, false);
 }
 bool MsExecuteEx2W(wchar_t *exe, wchar_t *arg, void **process_handle, bool runas)
 {
@@ -2103,14 +1296,6 @@ void MsUniMakeDirEx(wchar_t *name)
 
 	MsUniMakeDir(name);
 }
-void MsMakeDirEx(char *name)
-{
-	wchar_t *name_w = CopyStrToUni(name);
-
-	MsUniMakeDirEx(name_w);
-
-	Free(name_w);
-}
 
 // Create a directory
 bool MsUniMakeDir(wchar_t *name)
@@ -2119,14 +1304,6 @@ bool MsUniMakeDir(wchar_t *name)
 	if (name == NULL)
 	{
 		return false;
-	}
-
-	if (MsIsNt() == false)
-	{
-		char *s = CopyUniToStr(name);
-		bool ret = MsMakeDir(s);
-		Free(s);
-		return ret;
 	}
 
 	return CreateDirectoryW(name, NULL);
@@ -2142,890 +1319,12 @@ bool MsMakeDir(char *name)
 	return CreateDirectoryA(name, NULL);
 }
 
-// Delete the directory
-bool MsUniDirectoryDelete(wchar_t *name)
-{
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	if (MsIsNt() == false)
-	{
-		char *s = CopyUniToStr(name);
-		bool ret = MsDirectoryDelete(s);
-		Free(s);
-		return ret;
-	}
-
-	return RemoveDirectoryW(name);
-}
-bool MsDirectoryDelete(char *name)
-{
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	return RemoveDirectoryA(name);
-}
-
-// Delete the File
-bool MsUniFileDelete(wchar_t *name)
-{
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	if (MsIsNt() == false)
-	{
-		bool ret;
-		char *s = CopyUniToStr(name);
-		ret = MsFileDelete(s);
-		Free(s);
-		return ret;
-	}
-
-	return DeleteFileW(name);
-}
-bool MsFileDelete(char *name)
-{
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	return DeleteFileA(name);
-}
-
-// Get whether the specified file name is a directory
-bool MsUniIsDirectory(wchar_t *name)
-{
-	DWORD ret;
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	if (MsIsNt() == false)
-	{
-		char *s = CopyUniToStr(name);
-		ret = MsIsDirectory(s);
-		Free(s);
-
-		return ret;
-	}
-
-	ret = GetFileAttributesW(name);
-	if (ret == 0xffffffff)
-	{
-		return false;
-	}
-
-	if (ret & FILE_ATTRIBUTE_DIRECTORY)
-	{
-		return true;
-	}
-
-	return false;
-}
-bool MsIsDirectoryW(wchar_t *name)
-{
-	return MsUniIsDirectory(name);
-}
-bool MsIsDirectory(char *name)
-{
-	DWORD ret;
-	char tmp[MAX_PATH];
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	InnerFilePath(tmp, sizeof(tmp), name);
-
-	ret = GetFileAttributesA(tmp);
-	if (ret == 0xffffffff)
-	{
-		return false;
-	}
-
-	if (ret & FILE_ATTRIBUTE_DIRECTORY)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-// Extract the Cabinet from the MSI file
-bool MsExtractCabFromMsi(char *msi, char *cab)
-{
-	wchar_t msi_w[MAX_PATH];
-	wchar_t cab_w[MAX_PATH];
-
-	StrToUni(msi_w, sizeof(msi_w), msi);
-	StrToUni(cab_w, sizeof(cab_w), cab);
-
-	return MsExtractCabFromMsiW(msi_w, cab_w);
-}
-bool MsExtractCabFromMsiW(wchar_t *msi, wchar_t *cab)
-{
-	BUF *b;
-	bool ret = false;
-	UINT i;
-	char sign[] = {'M', 'S', 'C', 'F', 0, 0, 0, 0,};
-	void *pointer = NULL;
-	UINT current_pos = 0;
-	UINT sign_size;
-	// Validate arguments
-	if (msi == NULL || cab == NULL)
-	{
-		return false;
-	}
-
-	// Read the MSI
-	b = ReadDumpW(msi);
-	if (b == NULL)
-	{
-		return false;
-	}
-
-	if (b->Size < 128)
-	{
-		FreeBuf(b);
-		return false;
-	}
-
-	sign_size = sizeof(sign);
-
-	// Search for "MSCF"
-	for (i = 0;i < (b->Size - sign_size);i++)
-	{
-		char *p = ((UCHAR *)b->Buf) + i;
-
-		if (Cmp(p, sign, sign_size) == 0)
-		{
-			pointer = p;
-			current_pos = i;
-		}
-	}
-
-	if (pointer != NULL)
-	{
-		UINT size = b->Size - current_pos;
-		BUF *b2 = NewBuf();
-
-		WriteBuf(b2, pointer, size);
-
-		ret = DumpBufW(b2, cab);
-
-		FreeBuf(b2);
-
-	}
-
-	FreeBuf(b);
-
-	return ret;
-}
-
-// Retrieve a file from Cabinet file
-bool MsExtractCab(char *cab_name, char *dest_dir_name)
-{
-	wchar_t cab_name_w[MAX_SIZE];
-	wchar_t dest_dir_name_w[MAX_SIZE];
-
-	StrToUni(cab_name_w, sizeof(cab_name_w), cab_name);
-	StrToUni(dest_dir_name_w, sizeof(dest_dir_name_w), dest_dir_name);
-
-	return MsExtractCabW(cab_name_w, dest_dir_name_w);
-}
-bool MsExtractCabW(wchar_t *cab_name, wchar_t *dest_dir_name)
-{
-	wchar_t cabarc[MAX_PATH];
-	wchar_t arg[MAX_PATH * 2];
-	wchar_t tmp[MAX_PATH];
-
-	// Validate arguments
-	if (cab_name == NULL || dest_dir_name == NULL)
-	{
-		return false;
-	}
-
-	if (MsGetCabarcExeFilenameW(cabarc, sizeof(cabarc)) == false)
-	{
-		return false;
-	}
-
-	UniStrCpy(tmp, sizeof(tmp), dest_dir_name);
-	if (UniEndWith(tmp, L"\\"))
-	{
-		tmp[UniStrLen(tmp) - 1] = 0;
-	}
-
-	UniFormat(arg, sizeof(arg),
-		L"-o X \"%s\" * \"%s\"\\",
-		cab_name,
-		tmp);
-
-	MakeDirW(dest_dir_name);
-
-	if (RunW(cabarc, arg, true, true) == false)
-	{
-		return false;
-	}
-
-	return true;
-}
-
-// Extract of cabarc.exe
-bool MsGetCabarcExeFilename(char *name, UINT size)
-{
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	ConbinePath(name, size, MsGetMyTempDir(), "cabarc.exe");
-
-	if (IsFileExists(name))
-	{
-		return true;
-	}
-
-	if (FileCopy("|cabarc.exe", name) == false)
-	{
-		return false;
-	}
-
-	return true;
-}
-bool MsGetCabarcExeFilenameW(wchar_t *name, UINT size)
-{
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	ConbinePathW(name, size, MsGetMyTempDirW(), L"cabarc.exe");
-
-	if (IsFileExistsW(name))
-	{
-		return true;
-	}
-
-	if (FileCopyW(L"|cabarc.exe", name) == false)
-	{
-		return false;
-	}
-
-	return true;
-}
-
-// Extract the Cabinet file from EXE file
-bool MsExtractCabinetFileFromExe(char *exe, char *cab)
-{
-	BUF *b;
-	// Validate arguments
-	if (exe == NULL || cab == NULL)
-	{
-		return false;
-	}
-
-	b = MsExtractResourceFromExe(exe, RT_RCDATA, "CABINET");
-	if (b == NULL)
-	{
-		return false;
-	}
-
-	if (DumpBuf(b, cab) == false)
-	{
-		FreeBuf(b);
-
-		return false;
-	}
-
-	FreeBuf(b);
-
-	return true;
-}
-bool MsExtractCabinetFileFromExeW(wchar_t *exe, wchar_t *cab)
-{
-	BUF *b;
-	// Validate arguments
-	if (exe == NULL || cab == NULL)
-	{
-		return false;
-	}
-
-	b = MsExtractResourceFromExeW(exe, RT_RCDATA, "CABINET");
-	if (b == NULL)
-	{
-		return false;
-	}
-
-	if (DumpBufW(b, cab) == false)
-	{
-		FreeBuf(b);
-
-		return false;
-	}
-
-	FreeBuf(b);
-
-	return true;
-}
-
-// Extract the resource from EXE file
-BUF *MsExtractResourceFromExe(char *exe, char *type, char *name)
-{
-	HINSTANCE h;
-	HRSRC hr;
-	HGLOBAL hg;
-	UINT size;
-	void *data;
-	BUF *buf;
-	// Validate arguments
-	if (exe == NULL || type == NULL || name == NULL)
-	{
-		return NULL;
-	}
-
-	h = LoadLibraryExA(exe, NULL, LOAD_LIBRARY_AS_DATAFILE);
-	if (h == NULL)
-	{
-		return NULL;
-	}
-
-	hr = FindResourceA(h, name, type);
-	if (hr == NULL)
-	{
-		FreeLibrary(h);
-		return NULL;
-	}
-
-	hg = LoadResource(h, hr);
-	if (hg == NULL)
-	{
-		FreeLibrary(h);
-		return NULL;
-	}
-
-	size = SizeofResource(h, hr);
-	data = (void *)LockResource(hg);
-
-	buf = NewBuf();
-	WriteBuf(buf, data, size);
-
-	FreeResource(hg);
-	FreeLibrary(h);
-
-	SeekBuf(buf, 0, 0);
-
-	return buf;
-}
-BUF *MsExtractResourceFromExeW(wchar_t *exe, char *type, char *name)
-{
-	HINSTANCE h;
-	HRSRC hr;
-	HGLOBAL hg;
-	UINT size;
-	void *data;
-	BUF *buf;
-	// Validate arguments
-	if (exe == NULL || type == NULL || name == NULL)
-	{
-		return NULL;
-	}
-
-	if (IsNt() == false)
-	{
-		char exe_a[MAX_PATH];
-
-		UniToStr(exe_a, sizeof(exe_a), exe);
-
-		return MsExtractResourceFromExe(exe_a, type, name);
-	}
-
-	h = LoadLibraryExW(exe, NULL, LOAD_LIBRARY_AS_DATAFILE);
-	if (h == NULL)
-	{
-		return NULL;
-	}
-
-	hr = FindResource(h, name, type);
-	if (hr == NULL)
-	{
-		FreeLibrary(h);
-		return NULL;
-	}
-
-	hg = LoadResource(h, hr);
-	if (hg == NULL)
-	{
-		FreeLibrary(h);
-		return NULL;
-	}
-
-	size = SizeofResource(h, hr);
-	data = (void *)LockResource(hg);
-
-	buf = NewBuf();
-	WriteBuf(buf, data, size);
-
-	FreeResource(hg);
-	FreeLibrary(h);
-
-	SeekBuf(buf, 0, 0);
-
-	return buf;
-}
-
-// Get the version information of the file
-bool MsGetFileVersion(char *name, UINT *v1, UINT *v2, UINT *v3, UINT *v4)
-{
-	void *data;
-	UINT size;
-	DWORD h;
-	bool ret = false;
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	h = 0;
-	size = GetFileVersionInfoSize(name, &h);
-	if (size == 0)
-	{
-		return false;
-	}
-
-	data = ZeroMalloc(size);
-
-	if (GetFileVersionInfoA(name, 0, size, data))
-	{
-		VS_FIXEDFILEINFO *info = NULL;
-		UINT info_size = 0;
-		if (VerQueryValueA(data, "\\", &info, &info_size))
-		{
-			if (v1 != NULL)
-			{
-				*v1 = HIWORD(info->dwFileVersionMS);
-			}
-
-			if (v2 != NULL)
-			{
-				*v2 = LOWORD(info->dwFileVersionMS);
-			}
-
-			if (v3 != NULL)
-			{
-				*v3 = HIWORD(info->dwFileVersionLS);
-			}
-
-			if (v4 != NULL)
-			{
-				*v4 = LOWORD(info->dwFileVersionLS);
-			}
-
-			ret = true;
-		}
-	}
-
-	Free(data);
-
-	return ret;
-}
-bool MsGetFileVersionW(wchar_t *name, UINT *v1, UINT *v2, UINT *v3, UINT *v4)
-{
-	void *data;
-	UINT size;
-	DWORD h;
-	bool ret = false;
-	// Validate arguments
-	if (name == NULL)
-	{
-		return false;
-	}
-
-	if (IsNt() == false)
-	{
-		char name_a[MAX_PATH];
-
-		UniToStr(name_a, sizeof(name_a), name);
-
-		return MsGetFileVersion(name_a, v1, v2, v3, v4);
-	}
-
-	h = 0;
-	size = GetFileVersionInfoSizeW(name, &h);
-	if (size == 0)
-	{
-		return false;
-	}
-
-	data = ZeroMalloc(size);
-
-	if (GetFileVersionInfoW(name, 0, size, data))
-	{
-		VS_FIXEDFILEINFO *info = NULL;
-		UINT info_size = 0;
-		if (VerQueryValue(data, "\\", &info, &info_size))
-		{
-			if (v1 != NULL)
-			{
-				*v1 = HIWORD(info->dwFileVersionMS);
-			}
-
-			if (v2 != NULL)
-			{
-				*v2 = LOWORD(info->dwFileVersionMS);
-			}
-
-			if (v3 != NULL)
-			{
-				*v3 = HIWORD(info->dwFileVersionLS);
-			}
-
-			if (v4 != NULL)
-			{
-				*v4 = LOWORD(info->dwFileVersionLS);
-			}
-
-			ret = true;
-		}
-	}
-
-	Free(data);
-
-	return ret;
-}
-
-// Set the file to a hidden file
-void MsSetFileToHidden(char *name)
-{
-	char tmp[MAX_PATH];
-	DWORD d;
-	// Validate arguments
-	if (name == NULL)
-	{
-		return;
-	}
-
-	NormalizePath(tmp, sizeof(tmp), name);
-
-	d = GetFileAttributesA(tmp);
-	if (d != INVALID_FILE_ATTRIBUTES)
-	{
-		d |= FILE_ATTRIBUTE_HIDDEN;
-
-		SetFileAttributesA(tmp, d);
-	}
-}
-void MsSetFileToHiddenW(wchar_t *name)
-{
-	wchar_t tmp[MAX_PATH];
-	DWORD d;
-	// Validate arguments
-	if (name == NULL)
-	{
-		return;
-	}
-
-	if (IsNt() == false)
-	{
-		char name_a[MAX_SIZE];
-
-		UniToStr(name_a, sizeof(name_a), name);
-
-		MsSetFileToHidden(name_a);
-
-		return;
-	}
-
-	NormalizePathW(tmp, sizeof(tmp), name);
-
-	d = GetFileAttributesW(tmp);
-	if (d != INVALID_FILE_ATTRIBUTES)
-	{
-		d |= FILE_ATTRIBUTE_HIDDEN;
-
-		SetFileAttributesW(tmp, d);
-	}
-}
-
-// Sleep prevention thread
-void MsNoSleepThread(THREAD *thread, void *param)
-{
-	MS_NOSLEEP *e;
-	EXECUTION_STATE (WINAPI *_SetThreadExecutionState)(EXECUTION_STATE);
-	HINSTANCE hKernel32;
-	// Validate arguments
-	if (thread == NULL || param == NULL)
-	{
-		return;
-	}
-
-	hKernel32 = LoadLibrary("kernel32.dll");
-
-	_SetThreadExecutionState =
-		(EXECUTION_STATE (__stdcall *)(EXECUTION_STATE))
-		GetProcAddress(hKernel32, "SetThreadExecutionState");
-
-	e = (MS_NOSLEEP *)param;
-
-	while (e->Halt == false)
-	{
-		DWORD flag = ES_SYSTEM_REQUIRED;
-
-		if (e->NoScreenSaver)
-		{
-			flag |= ES_DISPLAY_REQUIRED;
-		}
-
-		if (_SetThreadExecutionState != NULL)
-		{
-			_SetThreadExecutionState(flag);
-		}
-
-		Wait(e->HaltEvent, 30 * 1000);
-	}
-
-	FreeLibrary(hKernel32);
-}
-
-// Sleep prevention thread (for Windows Vista)
-void MsNoSleepThreadVista(THREAD *thread, void *param)
-{
-	MS_NOSLEEP *e;
-	char *key = "Control Panel\\Desktop";
-	UINT64 last_set_flag = 0;
-	UINT last_c_x = INFINITE, last_c_y = INFINITE;
-	UINT64 last_mouse_move_time = 0;
-	EXECUTION_STATE (WINAPI *_SetThreadExecutionState)(EXECUTION_STATE);
-	HINSTANCE hKernel32;
-	// Validate arguments
-	if (thread == NULL || param == NULL)
-	{
-		return;
-	}
-
-	hKernel32 = LoadLibrary("kernel32.dll");
-
-	_SetThreadExecutionState =
-		(EXECUTION_STATE (__stdcall *)(EXECUTION_STATE))
-		GetProcAddress(hKernel32, "SetThreadExecutionState");
-
-	e = (MS_NOSLEEP *)param;
-
-	while (e->Halt == false)
-	{
-		DWORD flag = ES_SYSTEM_REQUIRED;
-		UINT64 now = Tick64();
-		POINT p;
-		bool mouse_move = false;
-
-		Zero(&p, sizeof(p));
-		GetCursorPos(&p);
-
-		if (p.x != last_c_x || p.y != last_c_y)
-		{
-			if (last_c_x != INFINITE && last_c_y != INFINITE)
-			{
-				mouse_move = true;
-			}
-
-			last_c_x = p.x;
-			last_c_y = p.y;
-		}
-
-		if (mouse_move)
-		{
-			last_mouse_move_time = now;
-		}
-
-		if (last_mouse_move_time == 0 || (now > (last_mouse_move_time + 50000ULL)))
-		{
-			wchar_t *active;
-			wchar_t *exe;
-			// Remove the configuration of the screen saver If the mouse does not move more than 50 seconds
-
-			active = MsRegReadStrW(REG_CURRENT_USER, key, "ScreenSaveActive");
-			exe = MsRegReadStrW(REG_CURRENT_USER, key, "SCRNSAVE.EXE");
-
-			if (UniToInt(active) != 0 && UniIsEmptyStr(exe) == false)
-			{
-				// Screen saver is set
-				UniStrCpy(e->ScreenSaveActive, sizeof(e->ScreenSaveActive), active);
-				UniStrCpy(e->SCRNSAVE_EXE, sizeof(e->SCRNSAVE_EXE), exe);
-
-				MsRegWriteStrW(REG_CURRENT_USER, key, "ScreenSaveActive", L"0");
-				MsRegDeleteValue(REG_CURRENT_USER, key, "SCRNSAVE.EXE");
-
-				Debug("Push SS Settings.\n");
-			}
-
-			Free(active);
-			Free(exe);
-
-			last_mouse_move_time = now;
-		}
-		else
-		{
-			if (mouse_move)
-			{
-				if (UniIsEmptyStr(e->ScreenSaveActive) == false && UniIsEmptyStr(e->SCRNSAVE_EXE) == false)
-				{
-					// Restore the settings of screen saver if the screen saver
-					// is not set when the mouse is moved
-					wchar_t *active;
-					wchar_t *exe;
-
-					active = MsRegReadStrW(REG_CURRENT_USER, key, "ScreenSaveActive");
-					exe = MsRegReadStrW(REG_CURRENT_USER, key, "SCRNSAVE.EXE");
-
-					if (UniToInt(active) != 0 && UniIsEmptyStr(exe) == false)
-					{
-					}
-					else
-					{
-						MsRegWriteStrW(REG_CURRENT_USER, key, "ScreenSaveActive", e->ScreenSaveActive);
-						MsRegWriteStrW(REG_CURRENT_USER, key, "SCRNSAVE.EXE", e->SCRNSAVE_EXE);
-
-						Zero(e->ScreenSaveActive, sizeof(e->ScreenSaveActive));
-						Zero(e->SCRNSAVE_EXE, sizeof(e->SCRNSAVE_EXE));
-
-						Debug("Pop SS Settings.\n");
-					}
-
-					Free(active);
-					Free(exe);
-				}
-			}
-		}
-
-		if (last_set_flag == 0 || (now > (last_set_flag + 50000ULL)))
-		{
-			// Flag set (interval 50 seconds)
-			last_set_flag = now;
-
-			if (_SetThreadExecutionState != NULL)
-			{
-				_SetThreadExecutionState(flag);
-			}
-		}
-
-		Wait(e->HaltEvent, 512);
-	}
-
-	if (true)
-	{
-		// Restore the settings of the screen saver
-		wchar_t *active;
-		wchar_t *exe;
-
-		if (UniIsEmptyStr(e->ScreenSaveActive) == false && UniIsEmptyStr(e->SCRNSAVE_EXE) == false)
-		{
-			active = MsRegReadStrW(REG_CURRENT_USER, key, "ScreenSaveActive");
-			exe = MsRegReadStrW(REG_CURRENT_USER, key, "SCRNSAVE.EXE");
-
-			if (UniToInt(active) != 0 && UniIsEmptyStr(exe) != 0)
-			{
-			}
-			else
-			{
-				MsRegWriteStrW(REG_CURRENT_USER, key, "ScreenSaveActive", e->ScreenSaveActive);
-				MsRegWriteStrW(REG_CURRENT_USER, key, "SCRNSAVE.EXE", e->SCRNSAVE_EXE);
-
-				Zero(e->ScreenSaveActive, sizeof(e->ScreenSaveActive));
-				Zero(e->SCRNSAVE_EXE, sizeof(e->SCRNSAVE_EXE));
-
-				Debug("Pop SS Settings.\n");
-			}
-
-			Free(active);
-			Free(exe);
-		}
-	}
-
-	FreeLibrary(hKernel32);
-}
-
-// The start of the sleep prevention
-void *MsNoSleepStart(bool no_screensaver)
-{
-	MS_NOSLEEP *e;
-	bool is_vista = MsIsVista();
-	bool is_nt_4 = false;
-	UINT os_type = GetOsInfo()->OsType;
-
-	if (OS_IS_WINDOWS_NT(os_type))
-	{
-		if (GET_KETA(os_type, 100) == 1)
-		{
-			is_nt_4 = true;
-		}
-	}
-
-	e = ZeroMalloc(sizeof(MS_NOSLEEP));
-
-	e->HaltEvent = NewEvent();
-	e->NoScreenSaver = no_screensaver;
-
-	if (e->NoScreenSaver == false || (is_vista == false && is_nt_4 == false))
-	{
-		e->Thread = NewThread(MsNoSleepThread, e);
-	}
-	else
-	{
-		e->Thread = NewThread(MsNoSleepThreadVista, e);
-	}
-
-	return (void *)e;
-}
-
-// Stop the Sleep prevention
-void MsNoSleepEnd(void *p)
-{
-	MS_NOSLEEP *e;
-	// Validate arguments
-	if (p == NULL)
-	{
-		return;
-	}
-
-	e = (MS_NOSLEEP *)p;
-
-	e->Halt = true;
-	Set(e->HaltEvent);
-
-	WaitThread(e->Thread, INFINITE);
-	ReleaseThread(e->Thread);
-	ReleaseEvent(e->HaltEvent);
-
-	Free(e);
-}
-
 static wchar_t ms_computer_name_full_cache[MAX_SIZE] = {0};
 
 // Get the full name of the computer
-void MsGetComputerNameFull(wchar_t *name, UINT size)
-{
-	MsGetComputerNameFullEx(name, size, false);
-}
 void MsGetComputerNameFullEx(wchar_t *name, UINT size, bool with_cache)
 {
-	UINT size2 = size;
+	DWORD size2 = size;
 	// Validate arguments
 	UniStrCpy(name, size, L"");
 	if (name == NULL || size == 0)
@@ -3042,8 +1341,7 @@ void MsGetComputerNameFullEx(wchar_t *name, UINT size, bool with_cache)
 		}
 	}
 
-	if (MsIsNt() == false || ms->nt->GetComputerNameExW == NULL ||
-		ms->nt->GetComputerNameExW(ComputerNameDnsFullyQualified, name, &size2) == false)
+	if (GetComputerNameExW(ComputerNameDnsFullyQualified, name, &size2) == false)
 	{
 		char tmp[MAX_SIZE];
 
@@ -3088,18 +1386,6 @@ UINT MsGetCursorPosHash()
 }
 
 // Start the process as a standard user privileges
-void *MsRunAsUserEx(char *filename, char *arg, bool hide)
-{
-	void *ret = MsRunAsUserExInner(filename, arg, hide);
-
-	if (ret == NULL)
-	{
-		Debug("MsRunAsUserExInner Failed.\n");
-		ret = Win32RunEx(filename, arg, hide);
-	}
-
-	return ret;
-}
 void *MsRunAsUserExW(wchar_t *filename, wchar_t *arg, bool hide)
 {
 	void *ret = MsRunAsUserExInnerW(filename, arg, hide);
@@ -3109,22 +1395,6 @@ void *MsRunAsUserExW(wchar_t *filename, wchar_t *arg, bool hide)
 		Debug("MsRunAsUserExInner Failed.\n");
 		ret = Win32RunExW(filename, arg, hide);
 	}
-
-	return ret;
-}
-void *MsRunAsUserExInner(char *filename, char *arg, bool hide)
-{
-	void *ret;
-	wchar_t *filename_w;
-	wchar_t *arg_w;
-
-	filename_w = CopyStrToUni(filename);
-	arg_w = CopyStrToUni(arg);
-
-	ret = MsRunAsUserExInnerW(filename_w, arg_w, hide);
-
-	Free(filename_w);
-	Free(arg_w);
 
 	return ret;
 }
@@ -3138,12 +1408,6 @@ void *MsRunAsUserExInnerW(wchar_t *filename, wchar_t *arg, bool hide)
 	// Validate arguments
 	if (filename == NULL)
 	{
-		return NULL;
-	}
-
-	if (MsIsVista() == false)
-	{
-		// Can not be used in non-Windows Vista
 		return NULL;
 	}
 
@@ -3188,7 +1452,7 @@ void *MsRunAsUserExInnerW(wchar_t *filename, wchar_t *arg, bool hide)
 		return NULL;
 	}
 
-	if (ms->nt->CreateProcessAsUserW(hToken, NULL, cmdline, NULL, NULL, FALSE,
+	if (CreateProcessAsUserW(hToken, NULL, cmdline, NULL, NULL, FALSE,
 		(hide == false ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW | CREATE_NEW_CONSOLE) | NORMAL_PRIORITY_CLASS,
 		NULL, NULL, &info, &ret) == FALSE)
 	{
@@ -3205,9 +1469,9 @@ void *MsRunAsUserExInnerW(wchar_t *filename, wchar_t *arg, bool hide)
 SID *MsGetSidFromAccountName(char *name)
 {
 	SID *sid;
-	UINT sid_size = 4096;
+	DWORD sid_size = 4096;
 	char *domain_name;
-	UINT domain_name_size = 4096;
+	DWORD domain_name_size = 4096;
 	SID_NAME_USE use = SidTypeUser;
 	// Validate arguments
 	if (name == NULL)
@@ -3215,15 +1479,10 @@ SID *MsGetSidFromAccountName(char *name)
 		return NULL;
 	}
 
-	if (MsIsNt() == false)
-	{
-		return NULL;
-	}
-
 	sid = ZeroMalloc(sid_size);
 	domain_name = ZeroMalloc(domain_name_size);
 
-	if (ms->nt->LookupAccountNameA(NULL, name, sid, &sid_size, domain_name, &domain_name_size, &use) == false)
+	if (LookupAccountNameA(NULL, name, sid, &sid_size, domain_name, &domain_name_size, &use) == false)
 	{
 		Free(sid);
 		Free(domain_name);
@@ -3250,27 +1509,14 @@ void MsFreeSid(SID *sid)
 // Create a token of standard user
 HANDLE MsCreateUserToken()
 {
-	char *medium_sid = "S-1-16-8192";
-	char *administrators_sid = "S-1-5-32-544";
-	SID *sid = NULL;
+	const char *medium_sid = "S-1-16-8192";
+	PSID sid = NULL;
 	TOKEN_MANDATORY_LABEL til;
 	HANDLE hCurrentToken, hNewToken;
-	if (MsIsNt() == false)
-	{
-		return NULL;
-	}
-	if (ms->nt->ConvertStringSidToSidA == NULL ||
-		ms->nt->OpenProcessToken == NULL ||
-		ms->nt->DuplicateTokenEx == NULL ||
-		ms->nt->GetTokenInformation == NULL ||
-		ms->nt->SetTokenInformation == NULL)
-	{
-		return NULL;
-	}
 
 	Zero(&til, sizeof(til));
 
-	if (ms->nt->ConvertStringSidToSidA(medium_sid, &sid) == false)
+	if (ConvertStringSidToSidA(medium_sid, &sid) == false)
 	{
 		return NULL;
 	}
@@ -3278,13 +1524,13 @@ HANDLE MsCreateUserToken()
 	til.Label.Attributes = SE_GROUP_INTEGRITY;
 	til.Label.Sid = sid;
 
-	if (ms->nt->OpenProcessToken(GetCurrentProcess(), MAXIMUM_ALLOWED, &hCurrentToken) == false)
+	if (OpenProcessToken(GetCurrentProcess(), MAXIMUM_ALLOWED, &hCurrentToken) == false)
 	{
 		LocalFree(sid);
 		return NULL;
 	}
 
-	if (ms->nt->DuplicateTokenEx(hCurrentToken, MAXIMUM_ALLOWED, NULL,
+	if (DuplicateTokenEx(hCurrentToken, MAXIMUM_ALLOWED, NULL,
 		SecurityImpersonation, TokenPrimary, &hNewToken) == false)
 	{
 		CloseHandle(hCurrentToken);
@@ -3292,7 +1538,7 @@ HANDLE MsCreateUserToken()
 		return NULL;
 	}
 
-	if (ms->nt->SetTokenInformation(hNewToken, VistaTokenIntegrityLevel, &til,
+	if (SetTokenInformation(hNewToken, TokenIntegrityLevel, &til,
 		sizeof(TOKEN_MANDATORY_LABEL) + GetLengthSid(sid)) == false)
 	{
 		CloseHandle(hNewToken);
@@ -3307,16 +1553,58 @@ HANDLE MsCreateUserToken()
 	return hNewToken;
 }
 
+// Check whether SHA-2 kernel mode signature is supported
+bool MsIsSha2KernelModeSignatureSupported()
+{
+	HINSTANCE hDll;
+	bool ret = false;
+
+	if (MsIsWindows8())
+	{
+		return true;
+	}
+
+	hDll = LoadLibrary("Wintrust.dll");
+	if (hDll == NULL)
+	{
+		return false;
+	}
+
+	if (GetProcAddress(hDll, "CryptCATAdminAcquireContext2") != NULL)
+	{
+		ret = true;
+	}
+
+	FreeLibrary(hDll);
+
+	return ret;
+}
+
+// Check whether KB3033929 is required
+bool MsIsKB3033929RequiredAndMissing()
+{
+	OS_INFO *info = GetOsInfo();
+
+	if (info == NULL)
+	{
+		return false;
+	}
+
+	if (GET_KETA(info->OsType, 100) == 6)
+	{
+		if (MsIsX64())
+		{
+			if (MsIsSha2KernelModeSignatureSupported() == false)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 // Check the digital signature of the file
-bool MsCheckFileDigitalSignature(HWND hWnd, char *name, bool *danger)
-{
-	wchar_t tmp[MAX_PATH];
-
-	swprintf(tmp, sizeof(tmp), L"%S", name);
-
-	return MsCheckFileDigitalSignatureW(hWnd, tmp, danger);
-}
 bool MsCheckFileDigitalSignatureW(HWND hWnd, wchar_t *name, bool *danger)
 {
 	HRESULT ret = S_OK;
@@ -3393,22 +1681,6 @@ bool MsCheckFileDigitalSignatureW(HWND hWnd, wchar_t *name, bool *danger)
 	return true;
 }
 
-// Enable or disable the WoW64 redirection
-void MsSetWow64FileSystemRedirectionEnable(bool enable)
-{
-	if (MsIs64BitWindows() == false)
-	{
-		return;
-	}
-
-	if (ms->nt->Wow64EnableWow64FsRedirection == NULL)
-	{
-		return;
-	}
-
-	ms->nt->Wow64EnableWow64FsRedirection(enable ? 1 : 0);
-}
-
 // Disable the WoW64 redirection
 void *MsDisableWow64FileSystemRedirection()
 {
@@ -3418,13 +1690,7 @@ void *MsDisableWow64FileSystemRedirection()
 		return NULL;
 	}
 
-	if (ms->nt->Wow64DisableWow64FsRedirection == NULL ||
-		ms->nt->Wow64RevertWow64FsRedirection == NULL)
-	{
-		return NULL;
-	}
-
-	if (ms->nt->Wow64DisableWow64FsRedirection(&p) == false)
+	if (Wow64DisableWow64FsRedirection(&p) == false)
 	{
 		return NULL;
 	}
@@ -3454,13 +1720,7 @@ void MsRestoreWow64FileSystemRedirection(void *p)
 		return;
 	}
 
-	if (ms->nt->Wow64DisableWow64FsRedirection == NULL ||
-		ms->nt->Wow64RevertWow64FsRedirection == NULL)
-	{
-		return;
-	}
-
-	ms->nt->Wow64RevertWow64FsRedirection(p);
+	Wow64RevertWow64FsRedirection(p);
 }
 
 // Get whether the x64 version of Windows is currently running
@@ -3472,13 +1732,9 @@ bool MsIsX64()
 	{
 		return false;
 	}
-	if (ms->nt->GetNativeSystemInfo == NULL)
-	{
-		return false;
-	}
 
 	Zero(&info, sizeof(info));
-	ms->nt->GetNativeSystemInfo(&info);
+	GetNativeSystemInfo(&info);
 
 	if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
 	{
@@ -3511,34 +1767,14 @@ bool MsIs64BitWindows()
 	{
 		return true;
 	}
-	else
-	{
-		if (MsIsNt() == false)
-		{
-			return false;
-		}
-		else
-		{
-			if (ms == NULL || ms->nt == NULL)
-			{
-				return false;
-			}
 
-			if (ms->nt->IsWow64Process == NULL)
-			{
-				return false;
-			}
-			else
-			{
-				bool b = false;
-				if (ms->nt->IsWow64Process(GetCurrentProcess(), &b) == false)
-				{
-					return false;
-				}
-				return b;
-			}
-		}
+	BOOL b = false;
+	if (IsWow64Process(GetCurrentProcess(), &b) == false)
+	{
+		return false;
 	}
+
+	return b;
 }
 
 // Windows Firewall registration
@@ -3581,7 +1817,6 @@ void MsRegistWindowsFirewallEx(char *title, char *exe)
 	char filename[MAX_PATH];
 	char cscript[MAX_PATH];
 	char arg[MAX_PATH];
-	UINT ostype;
 	IO *o;
 	char hash[MAX_PATH];
 	UCHAR hashbin[SHA1_SIZE];
@@ -3593,45 +1828,32 @@ void MsRegistWindowsFirewallEx(char *title, char *exe)
 		return;
 	}
 
-	// OS check (This Is not performed except Windows XP, Windows Server 2003, Windows Vista or later)
-	ostype = GetOsInfo()->OsType;
-	if (OS_IS_WINDOWS_NT(ostype) == false)
-	{
-		return;
-	}
-	if (MsIsVista() == false && (GET_KETA(ostype, 100) != 3 && GET_KETA(ostype, 100) != 4 && GET_KETA(ostype, 100) != 5 && GET_KETA(ostype, 100) != 6 && GET_KETA(ostype, 100) != 7))
-	{
-		return;
-	}
 	if (MsIsAdmin() == false)
 	{
 		return;
 	}
 
-	if (MsIsVista())
-	{
-		data = "Option Explicit\r\n\r\nConst PROFILES_ALL = 7\r\nConst NET_FW_ACTION_ALLOWNET_FW_ACTION_ALLOW = 1\r\n"
-			"\r\nDim policy2\r\nDim rules\r\nDim new_rule\r\n\r\nOn Error Resume Next\r\n\r\n"
-			"Set policy2 = CreateObject(\"HNetCfg.FwPolicy2\")\r\nSet rules = policy2.Rules\r\n"
-			"Set new_rule = CreateObject(\"HNetCfg.FWRule\")\r\nnew_rule.Name = \"$TITLE$\"\r\n"
-			"new_rule.Description = \"$TITLE$\"\r\nnew_rule.ApplicationName = \"$PATH$\"\r\n"
-			"new_rule.Enabled = TRUE\r\nnew_rule.Profiles = PROFILES_ALL\r\nnew_rule.Action = "
-			"NET_FW_ACTION_ALLOWNET_FW_ACTION_ALLOW\r\nrules.Add new_rule\r\n\r\n";
-	}
+	data = "Option Explicit\r\n\r\nConst PROFILES_ALL = 7\r\nConst NET_FW_ACTION_ALLOWNET_FW_ACTION_ALLOW = 1\r\n"
+		"\r\nDim policy2\r\nDim rules\r\nDim new_rule\r\n\r\nOn Error Resume Next\r\n\r\n"
+		"Set policy2 = CreateObject(\"HNetCfg.FwPolicy2\")\r\nSet rules = policy2.Rules\r\n"
+		"Set new_rule = CreateObject(\"HNetCfg.FWRule\")\r\nnew_rule.Name = \"$TITLE$\"\r\n"
+		"new_rule.Description = \"$TITLE$\"\r\nnew_rule.ApplicationName = \"$PATH$\"\r\n"
+		"new_rule.Enabled = TRUE\r\nnew_rule.Profiles = PROFILES_ALL\r\nnew_rule.Action = "
+		"NET_FW_ACTION_ALLOWNET_FW_ACTION_ALLOW\r\nrules.Add new_rule\r\n\r\n";
 
 	tmp_size = StrLen(data) * 4;
 	tmp = ZeroMalloc(tmp_size);
 
-	HashSha1(hashbin, exe, StrLen(exe));
+	Sha1(hashbin, exe, StrLen(exe));
 	BinToStr(hash, sizeof(hash), hashbin, 6);
 
 	ReplaceStrEx(tmp, tmp_size, data, "$TITLE$", title, false);
 	ReplaceStrEx(tmp, tmp_size, tmp, "$PATH$", exe, false);
 
-	HashSha1(file_hash_bin, tmp, StrLen(tmp));
+	Sha1(file_hash_bin, tmp, StrLen(tmp));
 	BinToStr(file_hash_str, sizeof(file_hash_str), file_hash_bin, sizeof(file_hash_bin));
 
-	if (MsIsVista() == false || MsRegReadIntEx2(REG_LOCAL_MACHINE, SOFTETHER_FW_SCRIPT_HASH, file_hash_str, false, true) == 0)
+	if (MsRegReadIntEx2(REG_LOCAL_MACHINE, SOFTETHER_FW_SCRIPT_HASH, file_hash_str, false, true) == 0)
 	{
 		Format(filename, sizeof(filename), "%s\\winfire_%s.vbs", MsGetMyTempDir(), hash);
 		o = FileCreate(filename);
@@ -3661,9 +1883,8 @@ bool MsExecDriverInstaller(char *arg)
 	wchar_t lang_config_src[MAX_PATH];
 	wchar_t lang_config_dst[MAX_PATH];
 	HANDLE h;
-	UINT retcode;
+	DWORD retcode;
 	SHELLEXECUTEINFOW info;
-	wchar_t *src_exe;
 	wchar_t *arg_w;
 	// Validate arguments
 	if (arg == NULL)
@@ -3675,20 +1896,9 @@ bool MsExecDriverInstaller(char *arg)
 	UniFormat(hamcore_src, sizeof(hamcore_src), L"%s\\hamcore.se2", MsGetExeDirNameW());
 
 	// Extract the File
-	src_exe = VISTA_DRIVER_INSTALLER_SRC;
-
-	if (MsIsX64())
-	{
-		src_exe = VISTA_DRIVER_INSTALLER_SRC_X64;
-	}
-	if (MsIsIA64())
-	{
-		src_exe = VISTA_DRIVER_INSTALLER_SRC_IA64;
-	}
-
 	UniFormat(tmp, sizeof(tmp), VISTA_DRIVER_INSTALLER_DST, MsGetMyTempDirW());
 
-	if (FileCopyW(src_exe, tmp) == false)
+	if (FileCopyW(VISTA_DRIVER_INSTALLER_SRC, tmp) == false)
 	{
 		return false;
 	}
@@ -3709,6 +1919,7 @@ bool MsExecDriverInstaller(char *arg)
 	info.cbSize = sizeof(info);
 	info.lpVerb = L"open";
 	info.lpFile = tmp;
+	info.lpDirectory = MsGetMyTempDirW();
 	info.fMask = SEE_MASK_NOCLOSEPROCESS;
 	info.lpParameters = arg_w;
 	info.nShow = SW_SHOWNORMAL;
@@ -3869,7 +2080,7 @@ void *MsLoadLibraryAsDataFileW(wchar_t *name)
 		return NULL;
 	}
 
-	Hash(hash, name, UniStrLen(name), true);
+	Sha0(hash, name, UniStrLen(name));
 
 	BinToStr(hash_str, sizeof(hash_str), hash, 4);
 
@@ -3903,29 +2114,6 @@ void *MsLoadLibraryAsDataFile(char *name)
 	return MsLoadLibraryAsDataFileW(name_w);
 }
 
-// Simple LoadLibaray
-void *MsLoadLibraryRawW(wchar_t *name)
-{
-	// Validate arguments
-	if (name == NULL)
-	{
-		return NULL;
-	}
-
-	if (MsIsNt())
-	{
-		return LoadLibraryW(name);
-	}
-	else
-	{
-		char tmp[MAX_PATH];
-
-		UniToStr(tmp, sizeof(tmp), name);
-
-		return LoadLibraryA(tmp);
-	}
-}
-
 // LoadLibrary (compatible for Hamcore)
 void *MsLoadLibraryW(wchar_t *name)
 {
@@ -3939,7 +2127,7 @@ void *MsLoadLibraryW(wchar_t *name)
 		return NULL;
 	}
 
-	Hash(hash, name, UniStrSize(name), true);
+	Sha0(hash, name, UniStrSize(name));
 
 	BinToStr(hash_str, sizeof(hash_str), hash, 4);
 
@@ -3985,30 +2173,6 @@ void *MsLoadLibrary(char *name)
 	StrToUni(name_w, sizeof(name_w), name);
 
 	return MsLoadLibraryW(name_w);
-}
-
-// Release of the library
-void MsFreeLibrary(void *h)
-{
-	// Validate arguments
-	if (h == NULL)
-	{
-		return;
-	}
-
-	FreeLibrary(h);
-}
-
-// Get the function pointer in the DLL 
-void *MsGetProcAddress(void *h, char *name)
-{
-	// Validate arguments
-	if (h == NULL || name == NULL)
-	{
-		return NULL;
-	}
-
-	return (void *)GetProcAddress(h, name);
 }
 
 // Search for the adapter by GUID
@@ -4101,15 +2265,10 @@ MS_ADAPTER *MsGetAdapter(char *title)
 void MsGetAdapterTcpIpInformation(MS_ADAPTER *a)
 {
 	IP_ADAPTER_INFO *info, *info_top;
-	UINT info_size;
-	UINT ret;
+	ULONG info_size;
+	ULONG ret;
 	// Validate arguments
 	if (a == NULL)
-	{
-		return;
-	}
-
-	if (w32net->GetAdaptersInfo == NULL)
 	{
 		return;
 	}
@@ -4117,14 +2276,14 @@ void MsGetAdapterTcpIpInformation(MS_ADAPTER *a)
 	info_top = ZeroMalloc(sizeof(IP_ADAPTER_INFO));
 	info_size = sizeof(IP_ADAPTER_INFO);
 
-	ret = w32net->GetAdaptersInfo(info_top, &info_size);
+	ret = GetAdaptersInfo(info_top, &info_size);
 	if (ret == ERROR_INSUFFICIENT_BUFFER || ret == ERROR_BUFFER_OVERFLOW)
 	{
 		Free(info_top);
 		info_size *= 2;
 		info_top = ZeroMalloc(info_size);
 
-		if (w32net->GetAdaptersInfo(info_top, &info_size) != NO_ERROR)
+		if (GetAdaptersInfo(info_top, &info_size) != NO_ERROR)
 		{
 			Free(info_top);
 			return;
@@ -4340,132 +2499,7 @@ MS_ADAPTER_LIST *MsCreateAdapterListInner()
 }
 MS_ADAPTER_LIST *MsCreateAdapterListInnerEx(bool no_info)
 {
-	LIST *o;
-	UINT i;
-	UINT retcode;
-	MIB_IFTABLE *table;
-	UINT table_size = sizeof(MIB_IFTABLE);
-	MS_ADAPTER_LIST *ret;
-
-	if (w32net->GetIfTable2 != NULL && w32net->FreeMibTable != NULL)
-	{
-		return MsCreateAdapterListInnerExVista(no_info);
-	}
-
-	if (w32net->GetIfTable == NULL)
-	{
-		return ZeroMalloc(sizeof(MS_ADAPTER_LIST));
-	}
-
-	table = ZeroMalloc(table_size);
-
-	retcode = w32net->GetIfTable(table, &table_size, TRUE);
-	if (retcode == ERROR_INSUFFICIENT_BUFFER || retcode == ERROR_BUFFER_OVERFLOW)
-	{
-		Free(table);
-		table_size *= 2;
-		table = ZeroMalloc(table_size);
-		if (w32net->GetIfTable(table, &table_size, TRUE) != NO_ERROR)
-		{
-			Free(table);
-			return ZeroMalloc(sizeof(MS_ADAPTER_LIST));
-		}
-	}
-	else if (retcode != NO_ERROR)
-	{
-		Free(table);
-		return ZeroMalloc(sizeof(MS_ADAPTER_LIST));
-	}
-
-	o = NewListFast(NULL);
-
-	for (i = 0;i < table->dwNumEntries;i++)
-	{
-		MIB_IFROW *r = &table->table[i];
-		char title[MAX_PATH];
-		UINT num = 0;
-		MS_ADAPTER *a;
-		UINT j;
-
-		//if (r->dwOperStatus == MIB_IF_OPER_STATUS_CONNECTED || r->dwOperStatus == MIB_IF_OPER_STATUS_OPERATIONAL)
-		{
-			//if (r->dwType & IF_TYPE_ETHERNET_CSMACD)
-			{
-				for (j = 1;;j++)
-				{
-					UINT k;
-					bool exists;
-					if (j == 1)
-					{
-						StrCpy(title, sizeof(title), (char *)r->bDescr);
-					}
-					else
-					{
-						Format(title, sizeof(title), "%s (%u)", (char *)r->bDescr, j);
-					}
-
-					exists = false;
-
-					for (k = 0;k < LIST_NUM(o);k++)
-					{
-						MS_ADAPTER *a = LIST_DATA(o, k);
-
-						if (StrCmpi(a->Title, title) == 0)
-						{
-							exists = true;
-							break;
-						}
-					}
-
-					if (exists == false)
-					{
-						break;
-					}
-				}
-
-				a = ZeroMalloc(sizeof(MS_ADAPTER));
-
-				// Create an adapter information
-				StrCpy(a->Title, sizeof(a->Title), title);
-				StrToUni(a->TitleW, sizeof(a->TitleW), title);
-				a->Index = r->dwIndex;
-				a->Type = r->dwType;
-				a->Status = r->dwOperStatus;
-				a->Mtu = r->dwMtu;
-				a->Speed = r->dwSpeed;
-				a->AddressSize = MIN(sizeof(a->Address), r->dwPhysAddrLen);
-				Copy(a->Address, r->bPhysAddr, a->AddressSize);
-				a->RecvBytes = r->dwInOctets;
-				a->RecvPacketsBroadcast = r->dwInNUcastPkts;
-				a->RecvPacketsUnicast = r->dwInUcastPkts;
-				a->SendBytes = r->dwOutOctets;
-				a->SendPacketsBroadcast = r->dwOutNUcastPkts;
-				a->SendPacketsUnicast = r->dwOutUcastPkts;
-
-				if (a->Type != IF_TYPE_ETHERNET_CSMACD)
-				{
-					a->IsNotEthernetLan = true;
-				}
-
-				// TCP/IP information acquisition
-				if (no_info == false)
-				{
-					MsGetAdapterTcpIpInformation(a);
-				}
-
-				Add(o, a);
-			}
-		}
-	}
-
-	ret = ZeroMalloc(sizeof(MS_ADAPTER_LIST));
-	ret->Num = LIST_NUM(o);
-	ret->Adapters = ToArray(o);
-
-	ReleaseList(o);
-	Free(table);
-
-	return ret;
+	return MsCreateAdapterListInnerExVista(no_info);
 }
 
 // Creating an adapters list (Windows Vista version)
@@ -4474,16 +2508,10 @@ MS_ADAPTER_LIST *MsCreateAdapterListInnerExVista(bool no_info)
 	LIST *o;
 	UINT i;
 	UINT retcode;
-	MIB_IF_TABLE2 *table;
-	UINT table_size = sizeof(MIB_IFTABLE);
+	PMIB_IF_TABLE2 table;
 	MS_ADAPTER_LIST *ret;
 
-	if (w32net->GetIfTable2 == NULL || w32net->FreeMibTable == NULL)
-	{
-		return ZeroMalloc(sizeof(MS_ADAPTER_LIST));
-	}
-
-	retcode = w32net->GetIfTable2(&table);
+	retcode = GetIfTable2(&table);
 	if (retcode != NO_ERROR || table == NULL)
 	{
 		return ZeroMalloc(sizeof(MS_ADAPTER_LIST));
@@ -4495,7 +2523,6 @@ MS_ADAPTER_LIST *MsCreateAdapterListInnerExVista(bool no_info)
 	{
 		MIB_IF_ROW2 *r = &table->Table[i];
 		wchar_t title[MAX_PATH];
-		UINT num = 0;
 		MS_ADAPTER *a;
 		UINT j;
 
@@ -4585,7 +2612,7 @@ MS_ADAPTER_LIST *MsCreateAdapterListInnerExVista(bool no_info)
 	ret->Adapters = ToArray(o);
 
 	ReleaseList(o);
-	w32net->FreeMibTable(table);
+	FreeMibTable(table);
 
 	return ret;
 }
@@ -4678,6 +2705,10 @@ wchar_t *MsGetAdapterTypeStr(UINT type)
 
 	switch (type)
 	{
+	case IF_TYPE_PROP_VIRTUAL:
+		ret = _UU("MS_VIRTUAL");
+		break;
+
 	case MIB_IF_TYPE_ETHERNET:
 		ret = _UU("MS_ETHERNET");
 		break;
@@ -4871,31 +2902,6 @@ bool MsKillProcess(UINT id)
 }
 
 // Get the current EXE file name
-void MsGetCurrentProcessExeName(char *name, UINT size)
-{
-	UINT id;
-	LIST *o;
-	MS_PROCESS *p;
-	// Validate arguments
-	if (name == NULL)
-	{
-		return;
-	}
-
-	id = MsGetCurrentProcessId();
-	o = MsGetProcessList();
-	p = MsSearchProcessById(o, id);
-	if (p != NULL)
-	{
-		p = MsSearchProcessById(o, id);
-		StrCpy(name, size, p->ExeFilename);
-	}
-	else
-	{
-		StrCpy(name, size, MsGetExeFileName());
-	}
-	MsFreeProcessList(o);
-}
 void MsGetCurrentProcessExeNameW(wchar_t *name, UINT size)
 {
 	UINT id;
@@ -4969,23 +2975,6 @@ int MsCompareProcessList(void *p1, void *p2)
 	}
 }
 
-// Display the process list
-void MsPrintProcessList(LIST *o)
-{
-	UINT i;
-	// Validate arguments
-	if (o == NULL)
-	{
-		return;
-	}
-
-	for (i = 0;i < LIST_NUM(o);i++)
-	{
-		MS_PROCESS *p = LIST_DATA(o, i);
-		UniPrint(L"%-4u: %s\n", p->ProcessId, p->ExeFilenameW);
-	}
-}
-
 // Release of the process list
 void MsFreeProcessList(LIST *o)
 {
@@ -5011,19 +3000,15 @@ LIST *MsGetProcessListNt()
 	LIST *o;
 	UINT max = 16384;
 	DWORD *processes;
-	UINT needed, num;
+	DWORD needed;
+	UINT num;
 	UINT i;
 
 	o = NewListFast(MsCompareProcessList);
 
-	if (ms->nt->EnumProcesses == NULL)
-	{
-		return o;
-	}
-
 	processes = ZeroMalloc(sizeof(DWORD) * max);
 
-	if (ms->nt->EnumProcesses(processes, sizeof(DWORD) * max, &needed) == FALSE)
+	if (EnumProcesses(processes, sizeof(DWORD) * max, &needed) == FALSE)
 	{
 		Free(processes);
 		return NULL;
@@ -5049,20 +3034,18 @@ LIST *MsGetProcessListNt()
 			sz1 = sizeof(exe) - 1;
 			sz2 = sizeof(exe_w) / sizeof(wchar_t) - 1;
 
-			if (ms->nt->EnumProcessModules(h, &hInst, sizeof(hInst), &needed) == false)
+			if (EnumProcessModules(h, &hInst, sizeof(hInst), &needed) == false)
 			{
 				hInst = NULL;
 			}
 
-			if (ms->nt->GetModuleFileNameExA(h, hInst, exe, sizeof(exe) - 1) &&
-				ms->nt->GetModuleFileNameExW(h, hInst, exe_w, sizeof(exe_w) / sizeof(wchar_t) - 1))
+			if (GetModuleFileNameExA(h, hInst, exe, sizeof(exe) - 1) &&
+				GetModuleFileNameExW(h, hInst, exe_w, sizeof(exe_w) / sizeof(wchar_t) - 1))
 			{
 				ok = true;
 			}
-			else if (ms->nt->QueryFullProcessImageNameA != NULL &&
-				ms->nt->QueryFullProcessImageNameW != NULL &&
-				ms->nt->QueryFullProcessImageNameA(h, 0, exe, &sz1) &&
-				ms->nt->QueryFullProcessImageNameW(h, 0, exe_w, &sz2))
+			else if (QueryFullProcessImageNameA(h, 0, exe, &sz1) &&
+				QueryFullProcessImageNameW(h, 0, exe_w, &sz2))
 			{
 				ok = true;
 			}
@@ -5089,73 +3072,10 @@ LIST *MsGetProcessListNt()
 	return o;
 }
 
-// Get the Process List (for Win9x)
-LIST *MsGetProcessList9x()
-{
-	HANDLE h;
-	LIST *o;
-	HANDLE (WINAPI *CreateToolhelp32Snapshot)(DWORD, DWORD);
-	BOOL (WINAPI *Process32First)(HANDLE, LPPROCESSENTRY32);
-	BOOL (WINAPI *Process32Next)(HANDLE, LPPROCESSENTRY32);
-
-	CreateToolhelp32Snapshot =
-		(HANDLE (__stdcall *)(DWORD,DWORD))
-		GetProcAddress(ms->hKernel32, "CreateToolhelp32Snapshot");
-	Process32First =
-		(BOOL (__stdcall *)(HANDLE,LPPROCESSENTRY32))
-		GetProcAddress(ms->hKernel32, "Process32First");
-	Process32Next =
-		(BOOL (__stdcall *)(HANDLE,LPPROCESSENTRY32))
-		GetProcAddress(ms->hKernel32, "Process32Next");
-
-	o = NewListFast(MsCompareProcessList);
-
-	if (CreateToolhelp32Snapshot != NULL && Process32First != NULL && Process32Next != NULL)
-	{
-		h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-		if (h != INVALID_HANDLE_VALUE)
-		{
-			PROCESSENTRY32 e;
-			Zero(&e, sizeof(e));
-			e.dwSize = sizeof(e);
-
-			if (Process32First(h, &e))
-			{
-				while (true)
-				{
-					MS_PROCESS *p = ZeroMalloc(sizeof(MS_PROCESS));
-					StrCpy(p->ExeFilename, sizeof(p->ExeFilename), e.szExeFile);
-					StrToUni(p->ExeFilenameW, sizeof(p->ExeFilenameW), p->ExeFilename);
-					p->ProcessId = e.th32ProcessID;
-					Add(o, p);
-					if (Process32Next(h, &e) == false)
-					{
-						break;
-					}
-				}
-			}
-			CloseHandle(h);
-		}
-	}
-
-	Sort(o);
-
-	return o;
-}
-
 // Get the Process List
 LIST *MsGetProcessList()
 {
-	if (MsIsNt() == false)
-	{
-		// Windows 9x
-		return MsGetProcessList9x();
-	}
-	else
-	{
-		// Windows NT, 2000, XP
-		return MsGetProcessListNt();
-	}
+	return MsGetProcessListNt();
 }
 
 // Force to run the current thread on a single CPU
@@ -5204,41 +3124,20 @@ bool MsShowIconOnTray(HWND hWnd, HICON icon, wchar_t *tooltip, UINT msg)
 		return true;
 	}
 
-	if (MsIsNt() == false)
-	{
-		Zero(&nid, sizeof(nid));
-		nid.cbSize = sizeof(nid);
-		nid.hWnd = hWnd;
-		nid.uID = 1;
-		nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_INFO;
-		nid.uCallbackMessage = msg;
-		nid.hIcon = icon;
-		UniToStr(nid.szTip, sizeof(nid.szTip), tooltip);
-		ret = Shell_NotifyIcon(NIM_ADD, &nid);
-	}
-	else
-	{
-		Zero(&nid_nt, sizeof(nid_nt));
-		nid_nt.cbSize = sizeof(nid_nt);
-		nid_nt.hWnd = hWnd;
-		nid_nt.uID = 1;
-		nid_nt.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_INFO;
-		nid_nt.uCallbackMessage = msg;
-		nid_nt.hIcon = icon;
-		UniStrCpy(nid_nt.szTip, sizeof(nid_nt.szTip), tooltip);
+	Zero(&nid_nt, sizeof(nid_nt));
+	nid_nt.cbSize = sizeof(nid_nt);
+	nid_nt.hWnd = hWnd;
+	nid_nt.uID = 1;
+	nid_nt.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_INFO;
+	nid_nt.uCallbackMessage = msg;
+	nid_nt.hIcon = icon;
+	UniStrCpy(nid_nt.szTip, sizeof(nid_nt.szTip), tooltip);
 
-		ret = Shell_NotifyIconW(NIM_ADD, &nid_nt);
-	}
+	ret = Shell_NotifyIconW(NIM_ADD, &nid_nt);
 
 	tray_inited = true;
 
 	return ret;
-}
-
-// Check whether the task tray has been initialized
-bool MsIsTrayInited()
-{
-	return tray_inited;
 }
 
 // Restore the icon in the task tray
@@ -5249,20 +3148,7 @@ void MsRestoreIconOnTray()
 		return;
 	}
 
-	if (MsIsNt() == false)
-	{
-		Shell_NotifyIcon(NIM_ADD, &nid);
-	}
-	else
-	{
-		Shell_NotifyIconW(NIM_ADD, &nid_nt);
-	}
-}
-
-// Change the icon in the task tray (go over!)
-void MsChangeIconOnTrayEx2(void *icon, wchar_t *tooltip, wchar_t *info_title, wchar_t *info, UINT info_flags)
-{
-	MsChangeIconOnTrayEx((HICON)icon, tooltip, info_title, info, info_flags, false);
+	Shell_NotifyIconW(NIM_ADD, &nid_nt);
 }
 
 // Change the icon in the task tray
@@ -5282,103 +3168,48 @@ bool MsChangeIconOnTrayEx(HICON icon, wchar_t *tooltip, wchar_t *info_title, wch
 
 	if (icon != NULL)
 	{
-		if (MsIsNt() == false)
+		if (nid_nt.hIcon != icon)
 		{
-			if (nid.hIcon != icon)
-			{
-				changed = true;
-				nid.hIcon = icon;
-			}
-		}
-		else
-		{
-			if (nid_nt.hIcon != icon)
-			{
-				changed = true;
-				nid_nt.hIcon = icon;
-			}
+			changed = true;
+			nid_nt.hIcon = icon;
 		}
 	}
 
 	if (tooltip != NULL)
 	{
-		if (MsIsNt() == false)
+		wchar_t tmp[MAX_SIZE];
+		UniStrCpy(tmp, sizeof(tmp), tooltip);
+
+		if (UniStrCmp(nid_nt.szTip, tmp) != 0)
 		{
-			char tmp[MAX_SIZE];
-
-			UniToStr(tmp, sizeof(tmp), tooltip);
-
-			if (StrCmp(nid.szTip, tmp) != 0)
-			{
-				StrCpy(nid.szTip, sizeof(nid.szTip), tmp);
-				changed = true;
-			}
-		}
-		else
-		{
-			wchar_t tmp[MAX_SIZE];
-
-			UniStrCpy(tmp, sizeof(tmp), tooltip);
-
-			if (UniStrCmp(nid_nt.szTip, tmp) != 0)
-			{
-				UniStrCpy(nid_nt.szTip, sizeof(nid_nt.szTip), tmp);
-				changed = true;
-			}
+			UniStrCpy(nid_nt.szTip, sizeof(nid_nt.szTip), tmp);
+			changed = true;
 		}
 	}
 
 	if (info_title != NULL && info != NULL)
 	{
-		if (MsIsNt() == false)
+		wchar_t tmp1[MAX_SIZE];
+		wchar_t tmp2[MAX_PATH];
+
+		UniStrCpy(tmp1, sizeof(tmp1), info_title);
+		UniStrCpy(tmp2, sizeof(tmp2), info);
+
+		if (UniStrCmp(nid_nt.szInfo, tmp1) != 0 ||
+			UniStrCmp(nid_nt.szInfoTitle, tmp2) != 0)
 		{
-			char tmp1[MAX_SIZE];
-			char tmp2[MAX_PATH];
+			UniStrCpy(nid_nt.szInfo, sizeof(nid_nt.szInfo), tmp1);
+			UniStrCpy(nid_nt.szInfoTitle, sizeof(nid_nt.szInfoTitle), tmp2);
+			nid_nt.dwInfoFlags = info_flags;
 
-			UniToStr(tmp1, sizeof(tmp1), info_title);
-			UniToStr(tmp2, sizeof(tmp2), info);
-
-			if (StrCmp(nid.szInfo, tmp1) != 0 ||
-				StrCmp(nid.szInfoTitle, tmp2) != 0)
-			{
-				StrCpy(nid.szInfo, sizeof(nid.szInfo), tmp1);
-				StrCpy(nid.szInfoTitle, sizeof(nid.szInfoTitle), tmp2);
-				nid.dwInfoFlags = info_flags;
-
-				changed = true;
-			}
-		}
-		else
-		{
-			wchar_t tmp1[MAX_SIZE];
-			wchar_t tmp2[MAX_PATH];
-
-			UniStrCpy(tmp1, sizeof(tmp1), info_title);
-			UniStrCpy(tmp2, sizeof(tmp2), info);
-
-			if (UniStrCmp(nid_nt.szInfo, tmp1) != 0 ||
-				UniStrCmp(nid_nt.szInfoTitle, tmp2) != 0)
-			{
-				UniStrCpy(nid_nt.szInfo, sizeof(nid_nt.szInfo), tmp1);
-				UniStrCpy(nid_nt.szInfoTitle, sizeof(nid_nt.szInfoTitle), tmp2);
-				nid_nt.dwInfoFlags = info_flags;
-
-				changed = true;
-			}
+			changed = true;
 		}
 	}
 
 	if (changed || add)
 	{
 		UINT op = (add ? NIM_ADD : NIM_MODIFY);
-		if (MsIsNt() == false)
-		{
-			ret = Shell_NotifyIcon(op, &nid);
-		}
-		else
-		{
-			ret = Shell_NotifyIconW(op, &nid_nt);
-		}
+		ret = Shell_NotifyIconW(op, &nid_nt);
 	}
 
 	return ret;
@@ -5387,54 +3218,20 @@ bool MsChangeIconOnTrayEx(HICON icon, wchar_t *tooltip, wchar_t *info_title, wch
 // Remove the icon in the task tray
 void MsHideIconOnTray()
 {
-	if (MsIsNt() == false)
-	{
-		Shell_NotifyIcon(NIM_DELETE, &nid);
-	}
-	else
-	{
-		Shell_NotifyIconW(NIM_DELETE, &nid_nt);
-	}
-
+	Shell_NotifyIconW(NIM_DELETE, &nid_nt);
 	tray_inited = false;
 }
 
 // Insert a menu item
 bool MsInsertMenu(HMENU hMenu, UINT pos, UINT flags, UINT_PTR id_new_item, wchar_t *lp_new_item)
 {
-	bool ret;
-
-	if (MsIsNt())
-	{
-		ret = InsertMenuW(hMenu, pos, flags, id_new_item, lp_new_item);
-	}
-	else
-	{
-		char *s = CopyUniToStr(lp_new_item);
-		ret = InsertMenuA(hMenu, pos, flags, id_new_item, s);
-		Free(s);
-	}
-
-	return ret;
+	return InsertMenuW(hMenu, pos, flags, id_new_item, lp_new_item);
 }
 
 // Adding a menu item
 bool MsAppendMenu(HMENU hMenu, UINT flags, UINT_PTR id, wchar_t *str)
 {
-	bool ret;
-
-	if (MsIsNt())
-	{
-		ret = AppendMenuW(hMenu, flags, id, str);
-	}
-	else
-	{
-		char *s = CopyUniToStr(str);
-		ret = AppendMenuA(hMenu, flags, id, s);
-		Free(s);
-	}
-
-	return ret;
+	return AppendMenuW(hMenu, flags, id, str);
 }
 
 // Display the menu
@@ -5455,16 +3252,7 @@ void MsUserModeTrayMenu(HWND hWnd)
 	MsAppendMenu(h, MF_ENABLED | MF_STRING, 10001, _UU("SVC_USERMODE_MENU_1"));
 	MsAppendMenu(h, MF_SEPARATOR, 10002, NULL);
 
-	if (MsIsNt())
-	{
-		GetWindowTextW(hWnd, caption, sizeof(caption));
-	}
-	else
-	{
-		char tmp[MAX_SIZE];
-		GetWindowTextA(hWnd, tmp, sizeof(tmp));
-		StrToUni(caption, sizeof(caption), tmp);
-	}
+	GetWindowTextW(hWnd, caption, sizeof(caption) / sizeof(caption[0]));
 
 	UniFormat(tmp, sizeof(tmp), _UU("SVC_USERMODE_MENU_2"), caption);
 	MsAppendMenu(h, MF_ENABLED | MF_STRING, 10003, tmp);
@@ -5496,8 +3284,7 @@ LRESULT CALLBACK MsUserModeWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 	if (msg == taskbar_msg && taskbar_msg != 0)
 	{
 		// The taskbar was regenerated
-		if (MsRegReadInt(REG_CURRENT_USER, SVC_USERMODE_SETTING_KEY, value_name) == 0 &&
-			service_for_9x_mode == false)
+		if (MsRegReadInt(REG_CURRENT_USER, SVC_USERMODE_SETTING_KEY, value_name) == 0)
 		{
 			MsRestoreIconOnTray();
 		}
@@ -5525,8 +3312,7 @@ LRESULT CALLBACK MsUserModeWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 		}
 
 		Format(value_name, sizeof(value_name), SVC_HIDETRAY_REG_VALUE, title_w);
-		if (MsRegReadInt(REG_CURRENT_USER, SVC_USERMODE_SETTING_KEY, value_name) == 0 &&
-			service_for_9x_mode == false)
+		if (MsRegReadInt(REG_CURRENT_USER, SVC_USERMODE_SETTING_KEY, value_name) == 0)
 		{
 			MsShowIconOnTray(hWnd, tray_icon, tmp, WM_APP + 33);
 		}
@@ -5600,39 +3386,10 @@ LRESULT CALLBACK MsUserModeWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-// Get the name of PenCore.dll
-char *MsGetPenCoreDllFileName()
-{
-	/*if (Is64())
-	{
-		if (IsX64())
-		{
-			return PENCORE_DLL_NAME_X64;
-		}
-		else
-		{
-			return PENCORE_DLL_NAME_IA64;
-		}
-	}
-	else*/
-	{
-		return PENCORE_DLL_NAME;
-	}
-}
-
 // Get whether this instance is in user mode
 bool MsIsUserMode()
 {
 	return is_usermode;
-}
-
-// Command to terminate the user-mode from the service side
-void MsStopUserModeFromService()
-{
-	if (hWndUsermode != NULL)
-	{
-		PostMessage(hWndUsermode, WM_CLOSE, 0, 0);
-	}
 }
 
 // Only run the test (for debugging)
@@ -5697,20 +3454,245 @@ void MsGenerateUserModeSvcGlobalPulseName(char *name, UINT size, char *svc_name)
 	UniTrim(tmp);
 	UniStrUpper(tmp);
 
-	HashSha1(hash, tmp, UniStrLen(tmp) * sizeof(wchar_t));
+	Sha1(hash, tmp, UniStrLen(tmp) * sizeof(wchar_t));
 
 	BinToStr(name, size, hash, sizeof(hash));
 }
 
-// Start in user mode
-void MsUserMode(char *title, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT icon)
+// Declare the beginning of use of a VLAN card
+void MsBeginVLanCard()
 {
-	wchar_t *title_w = CopyStrToUni(title);
-
-	MsUserModeW(title_w, start, stop, icon);
-
-	Free(title_w);
+	Inc(vlan_card_counter);
 }
+
+// Declare the ending of use of a VLAN card
+void MsEndVLanCard()
+{
+	Dec(vlan_card_counter);
+}
+
+// Return the flag whether the VLAN cards must be stopped
+bool MsIsVLanCardShouldStop()
+{
+	return vlan_card_should_stop_flag;
+}
+
+// Suspend procs
+void MsProcEnterSuspend()
+{
+	UINT64 giveup_tick = Tick64() + 2000;
+	UINT num = Count(vlan_card_counter);
+
+	vlan_is_in_suspend_mode = true;
+
+	vlan_card_should_stop_flag = true;
+
+	vlan_suspend_mode_begin_tick = Tick64();
+
+	while (true)
+	{
+		UINT64 now = Tick64();
+
+		if (now >= giveup_tick)
+		{
+			break;
+		}
+
+		if (Count(vlan_card_counter) == 0)
+		{
+			break;
+		}
+
+		SleepThread(100);
+	}
+
+	if (num >= 1)
+	{
+		SleepThread(3000);
+	}
+}
+void MsProcLeaveSuspend()
+{
+	vlan_card_should_stop_flag = false;
+	vlan_is_in_suspend_mode = false;
+	vlan_suspend_mode_begin_tick = Tick64();
+}
+UINT64 MsGetSuspendModeBeginTick()
+{
+	if (vlan_is_in_suspend_mode)
+	{
+		return Tick64();
+	}
+
+	return vlan_suspend_mode_begin_tick;
+}
+
+// Suspend handler window proc
+LRESULT CALLBACK MsSuspendHandlerWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	MS_SUSPEND_HANDLER *h;
+	CREATESTRUCT *cs;
+	// Validate arguments
+	if (hWnd == NULL)
+	{
+		return 0;
+	}
+
+	h = (MS_SUSPEND_HANDLER *)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+	if (h == NULL && msg != WM_CREATE)
+	{
+		goto LABEL_END;
+	}
+
+	switch (msg)
+	{
+	case WM_CREATE:
+		cs = (CREATESTRUCT *)lParam;
+		h = (MS_SUSPEND_HANDLER *)cs->lpCreateParams;
+		SetWindowLongPtrA(hWnd, GWLP_USERDATA, (LONG_PTR)h);
+		break;
+
+	case WM_POWERBROADCAST:
+		switch (wParam)
+		{
+		case PBT_APMSUSPEND:
+			MsProcEnterSuspend();
+			return 1;
+		case PBT_APMRESUMEAUTOMATIC:
+		case PBT_APMRESUMESUSPEND:
+			MsProcLeaveSuspend();
+			return 1;
+		}
+		break;
+
+	case WM_CLOSE:
+		/*if (h->AboutToClose == false)
+		{
+			return 0;
+		}*/
+		break;
+
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	}
+
+LABEL_END:
+	return DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+// Suspend handler thread
+void MsSuspendHandlerThreadProc(THREAD *thread, void *param)
+{
+	char wndclass_name[MAX_PATH];
+	WNDCLASS wc;
+	HWND hWnd;
+	MSG msg;
+	MS_SUSPEND_HANDLER *h = (MS_SUSPEND_HANDLER *)param;
+	// Validate arguments
+	if (h == NULL || thread == NULL)
+	{
+		return;
+	}
+
+	Format(wndclass_name, sizeof(wndclass_name), "WNDCLASS_%X", Rand32());
+
+	Zero(&wc, sizeof(wc));
+	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.hIcon = NULL;
+	wc.hInstance = ms->hInst;
+	wc.lpfnWndProc = MsSuspendHandlerWindowProc;
+	wc.lpszClassName = wndclass_name;
+	if (RegisterClassA(&wc) == 0)
+	{
+		NoticeThreadInit(thread);
+		return;
+	}
+
+	hWnd = CreateWindowA(wndclass_name, wndclass_name, WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+		NULL, NULL, ms->hInst, h);
+
+	h->hWnd = hWnd;
+
+	NoticeThreadInit(thread);
+
+	if (hWnd == NULL)
+	{
+		UnregisterClassA(wndclass_name, ms->hInst);
+		return;
+	}
+
+	//ShowWindow(hWnd, SW_SHOWNORMAL);
+
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+
+	vlan_card_should_stop_flag = false;
+	vlan_is_in_suspend_mode = false;
+	vlan_suspend_mode_begin_tick = 0;
+
+	DestroyWindow(hWnd);
+
+	UnregisterClassA(wndclass_name, ms->hInst);
+}
+
+// New suspend handler
+MS_SUSPEND_HANDLER *MsNewSuspendHandler()
+{
+	THREAD *t;
+	MS_SUSPEND_HANDLER *h;
+
+	if (Inc(suspend_handler_singleton) >= 2)
+	{
+		Dec(suspend_handler_singleton);
+		return NULL;
+	}
+
+	vlan_card_should_stop_flag = false;
+	vlan_is_in_suspend_mode = false;
+	vlan_suspend_mode_begin_tick = 0;
+
+	h = ZeroMalloc(sizeof(MS_SUSPEND_HANDLER));
+
+	t = NewThread(MsSuspendHandlerThreadProc, h);
+
+	WaitThreadInit(t);
+
+	h->Thread = t;
+
+	return h;
+}
+
+void MsFreeSuspendHandler(MS_SUSPEND_HANDLER *h)
+{
+	// Validate arguments
+	if (h == NULL)
+	{
+		return;
+	}
+
+	if (h->hWnd != NULL)
+	{
+		h->AboutToClose = true;
+		PostMessageA(h->hWnd, WM_CLOSE, 0, 0);
+	}
+
+	WaitThread(h->Thread, INFINITE);
+	ReleaseThread(h->Thread);
+
+	Free(h);
+
+	Dec(suspend_handler_singleton);
+
+	vlan_card_should_stop_flag = false;
+}
+
+// Start in user mode
 void MsUserModeW(wchar_t *title, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT icon)
 {
 	WNDCLASS wc;
@@ -5736,26 +3718,22 @@ void MsUserModeW(wchar_t *title, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop
 	inst = NewSingleInstance(NULL);
 	if (inst == NULL)
 	{
-		if (service_for_9x_mode == false)
-		{
-			// Do not display an error if Win9x service mode
-			MsgBoxEx(NULL, MB_ICONINFORMATION, _UU("SVC_USERMODE_MUTEX"), ms->ExeFileNameW);
-		}
+		MsgBoxEx(NULL, MB_ICONINFORMATION, _UU("SVC_USERMODE_MUTEX"), ms->ExeFileNameW);
 		return;
 	}
 
 	if (Is64())
 	{
-		hDll = MsLoadLibraryAsDataFile(MsGetPenCoreDllFileName());
+		hDll = MsLoadLibraryAsDataFile(PENCORE_DLL_NAME);
 	}
 	else
 	{
-		hDll = MsLoadLibrary(MsGetPenCoreDllFileName());
+		hDll = MsLoadLibrary(PENCORE_DLL_NAME);
 	}
 
 	// Read icon
 	tray_icon = LoadImage(hDll, MAKEINTRESOURCE(icon), IMAGE_ICON, 16, 16,
-		(MsIsNt() ? LR_SHARED : 0) | LR_VGACOLOR);
+		LR_SHARED | LR_VGACOLOR);
 
 	// Creating the main window
 	Zero(&wc, sizeof(wc));
@@ -5958,7 +3936,14 @@ void CALLBACK MsServiceDispatcher(DWORD argc, LPTSTR *argv)
 
 	//// Initialization
 	// Start of the Mayaqua
+#if defined(_DEBUG) || defined(DEBUG)	// In VC++ compilers, the macro is "_DEBUG", not "DEBUG".
+	// If set memcheck = true, the program will be vitally slow since it will log all malloc() / realloc() / free() calls to find the cause of memory leak.
+	// For normal debug we set memcheck = false.
+	// Please set memcheck = true if you want to test the cause of memory leaks.
+	InitMayaqua(false, true, 0, NULL);
+#else
 	InitMayaqua(false, false, 0, NULL);
+#endif
 
 	// Stop the MS-IME
 	MsDisableIme();
@@ -6050,11 +4035,6 @@ UINT MsReadCallingServiceManagerProcessId(char *svcname, bool current_user)
 	return MsRegReadInt(current_user ? REG_CURRENT_USER : REG_LOCAL_MACHINE, tmp, SVC_CALLING_SM_PROCESS_ID_VALUE);
 }
 
-// Dispatch function of the service
-void CALLBACK MsScmDispatcher(DWORD argc, LPTSTR *argv)
-{
-}
-
 // Service main function
 UINT MsService(char *name, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT icon, char *cmd_line)
 {
@@ -6138,7 +4118,14 @@ UINT MsService(char *name, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT
 	}
 
 	// Start of the Mayaqua
+#if defined(_DEBUG) || defined(DEBUG)	// In VC++ compilers, the macro is "_DEBUG", not "DEBUG".
+	// If set memcheck = true, the program will be vitally slow since it will log all malloc() / realloc() / free() calls to find the cause of memory leak.
+	// For normal debug we set memcheck = false.
+	// Please set memcheck = true if you want to test the cause of memory leaks.
+	InitMayaqua(false, true, 0, NULL);
+#else
 	InitMayaqua(false, false, 0, NULL);
+#endif
 
 	// Stop the MS-IME
 	MsDisableIme();
@@ -6220,18 +4207,6 @@ UINT MsService(char *name, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT
 			{
 				mode = SVC_MODE_SETUP_UNINSTALL;
 			}
-			if (StrCmpi(arg, SVC_ARG_WIN9X_SERVICE) == 0)
-			{
-				mode = SVC_MODE_WIN9X_SERVICE;
-			}
-			if (StrCmpi(arg, SVC_ARG_WIN9X_INSTALL) == 0)
-			{
-				mode = SVC_MODE_WIN9X_INSTALL;
-			}
-			if (StrCmpi(arg, SVC_ARG_WIN9X_UNINSTALL) == 0)
-			{
-				mode = SVC_MODE_WIN9X_UNINSTALL;
-			}
 			if (StrCmpi(arg, SVC_ARG_TCP) == 0)
 			{
 				mode = SVC_MODE_TCP;
@@ -6292,7 +4267,7 @@ UINT MsService(char *name, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT
 			mode == SVC_MODE_STOP || mode == SVC_MODE_SERVICE) &&
 			(ms->IsAdmin == false))
 		{
-			// Do not have Administrators privillage
+			// Do not have Administrators privilege
 			MsgBox(NULL, MB_ICONEXCLAMATION, _UU("SVC_NOT_ADMIN"));
 		}
 		else
@@ -6310,15 +4285,7 @@ UINT MsService(char *name, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT
 						wchar_t filename[MAX_PATH];
 
 						UniFormat(filename, sizeof(filename), L"\"%s\"", arg_w);
-
-						if (Is64() == false)
-						{
-							UniFormat(vpncmgr, sizeof(vpncmgr), L"%s\\vpncmgr.exe", MsGetExeDirNameW());
-						}
-						else
-						{
-							UniFormat(vpncmgr, sizeof(vpncmgr), L"%s\\vpncmgr_x64.exe", MsGetExeDirNameW());
-						}
+						UniFormat(vpncmgr, sizeof(vpncmgr), L"%s\\vpncmgr.exe", MsGetExeDirNameW());
 
 						RunW(vpncmgr, filename, false, false);
 					}
@@ -6604,63 +4571,13 @@ UINT MsService(char *name, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT
 				// Test mode
 				MsTestModeW(service_title, start, stop);
 				break;
-
-			case SVC_MODE_WIN9X_SERVICE:
-				// Win9x service mode (hide icon in the task tray unconditionally)
-				if (MsIsNt())
-				{
-					// Don't do this on Windows 2000 or later
-					break;
-				}
-				service_for_9x_mode = true;
-				// Not a oblivion to break
 			case SVC_MODE_USERMODE:
 				// User mode
 				MsUserModeW(service_title, start, stop, icon);
 				break;
-
-			case SVC_MODE_WIN9X_INSTALL:
-				// Win9x installation mode
-				MsWriteCallingServiceManagerProcessId(service_name, MsGetCurrentProcessId());
-				restoreReg = true;
-
-				if (MsIsNt() == false)
-				{
-					// Adding a registry key
-					char cmdline[MAX_PATH];
-					Format(cmdline, sizeof(cmdline), "\"%s\" %s",
-						MsGetExeFileName(), SVC_ARG_WIN9X_SERVICE);
-					MsRegWriteStr(REG_LOCAL_MACHINE, WIN9X_SVC_REGKEY_1,
-						name, cmdline);
-					MsRegWriteStr(REG_LOCAL_MACHINE, WIN9X_SVC_REGKEY_2,
-						name, cmdline);
-
-					// Start
-					//Run(MsGetExeFileName(), SVC_ARG_WIN9X_SERVICE, false, false);
-				}
-				break;
-
-			case SVC_MODE_WIN9X_UNINSTALL:
-				// Win9x uninstall mode
-				MsWriteCallingServiceManagerProcessId(service_name, MsGetCurrentProcessId());
-				restoreReg = true;
-
-				if (MsIsNt() == false)
-				{
-					// Delete the registry key
-					MsRegDeleteValue(REG_LOCAL_MACHINE, WIN9X_SVC_REGKEY_1,
-						name);
-					MsRegDeleteValue(REG_LOCAL_MACHINE, WIN9X_SVC_REGKEY_2,
-						name);
-
-					// Terminate all the processes of PacketiX VPN Client other than itself
-					MsKillOtherInstance();
-				}
-				break;
-
 			case SVC_MODE_SERVICE:
 				// Run as a service
-				// Obsolated (2012.12.31) (Do this in the above code)
+				// Obsoleted (2012.12.31) (Do this in the above code)
 				//MsServiceMode(start, stop);
 				break;
 
@@ -6670,7 +4587,7 @@ UINT MsService(char *name, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT
 				InitCedar();
 				InitWinUi(service_title_uni, NULL, 0);
 
-				if (MsIsVista() && MsIsAdmin() == false && mode != SVC_MODE_TCP_UAC)
+				if (MsIsAdmin() == false && mode != SVC_MODE_TCP_UAC)
 				{
 					void *handle = NULL;
 					if (MsExecuteEx2W(ms->ExeFileNameW, SVC_ARG_TCP_UAC_W, &handle, true) == false)
@@ -6696,7 +4613,7 @@ UINT MsService(char *name, SERVICE_FUNCTION *start, SERVICE_FUNCTION *stop, UINT
 				InitCedar();
 				InitWinUi(service_title_uni, NULL, 0);
 
-				if (MsIsVista() && MsIsAdmin() == false)
+				if (MsIsAdmin() == false)
 				{
 					void *handle = NULL;
 					if (MsExecuteEx2W(ms->ExeFileNameW, arg_w, &handle, true) == false)
@@ -6754,9 +4671,9 @@ wchar_t *MsGetSessionUserName(UINT session_id)
 	{
 		wchar_t *ret;
 		wchar_t *name;
-		UINT size = 0;
-		if (ms->nt->WTSQuerySessionInformation(WTS_CURRENT_SERVER_HANDLE, session_id,
-			WTSUserName, (wchar_t *)&name, &size) == false)
+		DWORD size = 0;
+		if (WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, session_id,
+			WTSUserName, (LPWSTR *)&name, &size) == false)
 		{
 			return NULL;
 		}
@@ -6770,47 +4687,11 @@ wchar_t *MsGetSessionUserName(UINT session_id)
 			ret = UniCopyStr(name);
 		}
 
-		ms->nt->WTSFreeMemory(name);
+		WTSFreeMemory(name);
 
 		return ret;
 	}
 	return NULL;
-}
-
-// Get whether the current desktop is available for the VNC
-bool MsIsCurrentDesktopAvailableForVnc()
-{
-	if (MsIsNt() == false)
-	{
-		return true;
-	}
-
-	if (MsIsCurrentTerminalSessionActive() == false)
-	{
-		return false;
-	}
-
-	if (ms->nt->OpenDesktopA == NULL ||
-		ms->nt->CloseDesktop == NULL ||
-		ms->nt->SwitchDesktop == NULL)
-	{
-		return true;
-	}
-	else
-	{
-		HDESK hDesk = ms->nt->OpenDesktopA("default", 0, false, DESKTOP_SWITCHDESKTOP);
-		bool ret;
-
-		if (hDesk == NULL)
-		{
-			return false;
-		}
-
-		ret = ms->nt->SwitchDesktop(hDesk);
-		ms->nt->CloseDesktop(hDesk);
-
-		return ret;
-	}
 }
 
 // Get whether the current terminal session is active
@@ -6825,11 +4706,11 @@ bool MsIsTerminalSessionActive(UINT session_id)
 	if (MsIsTerminalServiceInstalled() || MsIsUserSwitchingInstalled())
 	{
 		UINT *status = NULL;
-		UINT size = sizeof(status);
+		DWORD size = sizeof(status);
 		bool active = true;
 
-		if (ms->nt->WTSQuerySessionInformation(WTS_CURRENT_SERVER_HANDLE, session_id,
-			WTSConnectState, (wchar_t *)&status, &size) == false)
+		if (WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, session_id,
+			WTSConnectState, (LPWSTR *)&status, &size) == false)
 		{
 			return true;
 		}
@@ -6845,7 +4726,7 @@ bool MsIsTerminalSessionActive(UINT session_id)
 			break;
 		}
 
-		ms->nt->WTSFreeMemory(status);
+		WTSFreeMemory(status);
 
 		return active;
 	}
@@ -6860,16 +4741,16 @@ UINT MsGetCurrentTerminalSessionId()
 	{
 		UINT ret;
 		UINT *session_id = NULL;
-		UINT size = sizeof(session_id);
-		if (ms->nt->WTSQuerySessionInformation(WTS_CURRENT_SERVER_HANDLE, WTS_CURRENT_SESSION,
-			WTSSessionId, (wchar_t *)&session_id, &size) == false)
+		DWORD size = sizeof(session_id);
+		if (WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, WTS_CURRENT_SESSION,
+			WTSSessionId, (LPWSTR *)&session_id, &size) == false)
 		{
 			return 0;
 		}
 
 		ret = *session_id;
 
-		ms->nt->WTSFreeMemory(session_id);
+		WTSFreeMemory(session_id);
 
 		return ret;
 	}
@@ -6877,59 +4758,10 @@ UINT MsGetCurrentTerminalSessionId()
 	return 0;
 }
 
-// Examine whether the Terminal Services is installed and the multiple sessions can log in
-bool MsIsTerminalServiceMultiUserInstalled()
-{
-	OS_INFO *info = GetOsInfo();
-	OSVERSIONINFOEX i;
-	if (MsIsTerminalServiceInstalled() == false)
-	{
-		return false;
-	}
-
-	if (OS_IS_SERVER(info->OsType) == false)
-	{
-		return false;
-	}
-
-	Zero(&i, sizeof(i));
-	i.dwOSVersionInfoSize = sizeof(i);
-	if (GetVersionEx((OSVERSIONINFO *)&i) == false)
-	{
-		return false;
-	}
-
-	if (i.wSuiteMask & VER_SUITE_SINGLEUSERTS)
-	{
-		return false;
-	}
-
-	return true;
-}
-
 // Examine whether the user switching is installed
 bool MsIsUserSwitchingInstalled()
 {
-	OS_INFO *info = GetOsInfo();
 	OSVERSIONINFOEX i;
-
-	if (OS_IS_WINDOWS_NT(info->OsType) == false)
-	{
-		return false;
-	}
-
-	if (ms->nt->WTSDisconnectSession == NULL ||
-		ms->nt->WTSFreeMemory == NULL ||
-		ms->nt->WTSQuerySessionInformation == NULL)
-	{
-		return false;
-	}
-
-	if (GET_KETA(info->OsType, 100) < 2)
-	{
-		return false;
-	}
-
 	Zero(&i, sizeof(i));
 	i.dwOSVersionInfoSize = sizeof(i);
 	if (GetVersionEx((OSVERSIONINFO *)&i) == false)
@@ -6940,239 +4772,6 @@ bool MsIsUserSwitchingInstalled()
 	if (i.wSuiteMask & VER_SUITE_SINGLEUSERTS)
 	{
 		return true;
-	}
-
-	return false;
-}
-
-// Enable the remote desktop
-bool MsEnableRemoteDesktop()
-{
-	OS_INFO *info = GetOsInfo();
-
-	if (MsIsRemoteDesktopAvailable() == false)
-	{
-		return false;
-	}
-
-	if (MsIsRemoteDesktopEnabled())
-	{
-		return true;
-	}
-
-	if (GET_KETA(info->OsType, 100) == 2)
-	{
-		// Windows 2000
-		return false;
-	}
-
-	if (MsRegWriteInt(REG_LOCAL_MACHINE,
-		"SYSTEM\\CurrentControlSet\\Control\\Terminal Server",
-		"fDenyTSConnections", 0) == false)
-	{
-		return false;
-	}
-
-	if (MsIsVista())
-	{
-		if (MsRegWriteInt(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp",
-			"UserAuthentication", 0) == false)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-// Examine whether the Remote Desktop is enabled
-bool MsIsRemoteDesktopEnabled()
-{
-	OS_INFO *info = GetOsInfo();
-
-	if (MsIsRemoteDesktopAvailable() == false)
-	{
-		return false;
-	}
-
-	if (GET_KETA(info->OsType, 100) == 2)
-	{
-		// Windows 2000
-		return MsIsServiceRunning("TermService");
-	}
-	else
-	{
-		// Windows XP or later
-		bool b = MsRegReadInt(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Terminal Server",
-			"fDenyTSConnections");
-
-		if (MsIsVista() == false)
-		{
-			return b ? false : true;
-		}
-		else
-		{
-			if (b)
-			{
-				return false;
-			}
-			else
-			{
-				if (MsRegReadInt(REG_LOCAL_MACHINE,
-					"SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp",
-					"UserAuthentication"))
-				{
-					return false;
-				}
-				else
-				{
-					return true;
-				}
-			}
-		}
-	}
-}
-
-// Examine whether the remote desktop becomes available by registry operation
-bool MsIsRemoteDesktopCanEnableByRegistory()
-{
-	OS_INFO *info = GetOsInfo();
-	if (MsIsRemoteDesktopAvailable() == false)
-	{
-		return false;
-	}
-
-	if (GET_KETA(info->OsType, 100) == 2)
-	{
-		// Windows 2000
-		return false;
-	}
-	else
-	{
-		// Others
-		return true;
-	}
-}
-
-// Examine whether it's running on Windows 2000
-bool MsIsWin2000()
-{
-	OS_INFO *info = GetOsInfo();
-
-	if (OS_IS_WINDOWS_NT(info->OsType) == false)
-	{
-		return false;
-	}
-
-	if (GET_KETA(info->OsType, 100) == 2)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-// Examine whether Windows 2000 or later
-bool MsIsWin2000OrGreater()
-{
-	OS_INFO *info = GetOsInfo();
-
-	if (OS_IS_WINDOWS_NT(info->OsType) == false)
-	{
-		return false;
-	}
-
-	if (GET_KETA(info->OsType, 100) >= 2)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-// Examine whether Windows XP or later
-bool MsIsWinXPOrGreater()
-{
-	OS_INFO *info = GetOsInfo();
-
-	if (OS_IS_WINDOWS_NT(info->OsType) == false)
-	{
-		return false;
-	}
-
-	if (GET_KETA(info->OsType, 100) >= 3)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-// Examine whether the remote desktop is available
-bool MsIsRemoteDesktopAvailable()
-{
-	OS_INFO *info = GetOsInfo();
-	if (MsIsTerminalServiceInstalled() == false)
-	{
-		return false;
-	}
-
-	if (GET_KETA(info->OsType, 100) == 2)
-	{
-		// Windows 2000
-		if (info->OsType == 2200)
-		{
-			// Windows 2000 Professional
-			return false;
-		}
-		else
-		{
-			// Windows 2000 server series
-			return true;
-		}
-	}
-	else if (GET_KETA(info->OsType, 100) == 3)
-	{
-		// Windows XP
-		if (info->OsType == OSTYPE_WINDOWS_XP_HOME)
-		{
-			// Home Edition
-			return false;
-		}
-		else
-		{
-			// Professional Edition
-			return true;
-		}
-	}
-	else if (GET_KETA(info->OsType, 100) == 4)
-	{
-		// Windows Server 2003
-		return true;
-	}
-	else if (GET_KETA(info->OsType, 100) >= 5)
-	{
-		// Windows Vista or later
-		OSVERSIONINFOEX i;
-
-		Zero(&i, sizeof(i));
-		i.dwOSVersionInfoSize = sizeof(i);
-		if (GetVersionEx((OSVERSIONINFO *)&i) == false)
-		{
-			return false;
-		}
-
-		if (i.wSuiteMask & VER_SUITE_PERSONAL)
-		{
-			// Home series
-			return false;
-		}
-		else
-		{
-			return true;
-		}
 	}
 
 	return false;
@@ -7181,26 +4780,7 @@ bool MsIsRemoteDesktopAvailable()
 // Examine whether the Terminal Services is installed
 bool MsIsTerminalServiceInstalled()
 {
-	OS_INFO *info = GetOsInfo();
 	OSVERSIONINFOEX i;
-
-	if (OS_IS_WINDOWS_NT(info->OsType) == false)
-	{
-		return false;
-	}
-
-	if (ms->nt->WTSDisconnectSession == NULL ||
-		ms->nt->WTSFreeMemory == NULL ||
-		ms->nt->WTSQuerySessionInformation == NULL)
-	{
-		return false;
-	}
-
-	if (GET_KETA(info->OsType, 100) < 2)
-	{
-		return false;
-	}
-
 	Zero(&i, sizeof(i));
 	i.dwOSVersionInfoSize = sizeof(i);
 	if (GetVersionEx((OSVERSIONINFO *)&i) == false)
@@ -7226,24 +4806,20 @@ bool MsStopService(char *name)
 	{
 		return false;
 	}
-	if (ms->IsNt == false)
-	{
-		return false;
-	}
 
-	sc = ms->nt->OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	sc = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (sc == NULL)
 	{
 		return false;
 	}
 
-	service = ms->nt->OpenService(sc, name, SERVICE_ALL_ACCESS);
+	service = OpenService(sc, name, SERVICE_ALL_ACCESS);
 	if (service != NULL)
 	{
 		SERVICE_STATUS st;
-		ret = ms->nt->ControlService(service, SERVICE_CONTROL_STOP, &st);
+		ret = ControlService(service, SERVICE_CONTROL_STOP, &st);
 
-		ms->nt->CloseServiceHandle(service);
+		CloseServiceHandle(service);
 	}
 
 	if (ret)
@@ -7260,7 +4836,7 @@ bool MsStopService(char *name)
 		}
 	}
 
-	ms->nt->CloseServiceHandle(sc);
+	CloseServiceHandle(sc);
 	return ret;
 }
 
@@ -7279,10 +4855,7 @@ bool MsStartServiceEx(char *name, UINT *error_code)
 	{
 		return false;
 	}
-	if (ms->IsNt == false)
-	{
-		return false;
-	}
+
 	if (error_code == NULL)
 	{
 		error_code = &dummy;
@@ -7290,19 +4863,19 @@ bool MsStartServiceEx(char *name, UINT *error_code)
 
 	*error_code = 0;
 
-	sc = ms->nt->OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	sc = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (sc == NULL)
 	{
 		*error_code = GetLastError();
 		return false;
 	}
 
-	service = ms->nt->OpenService(sc, name, SERVICE_ALL_ACCESS);
+	service = OpenService(sc, name, SERVICE_ALL_ACCESS);
 	if (service != NULL)
 	{
-		ret = ms->nt->StartService(service, 0, NULL);
+		ret = StartService(service, 0, NULL);
 
-		ms->nt->CloseServiceHandle(service);
+		CloseServiceHandle(service);
 	}
 	else
 	{
@@ -7323,7 +4896,7 @@ bool MsStartServiceEx(char *name, UINT *error_code)
 		}
 	}
 
-	ms->nt->CloseServiceHandle(sc);
+	CloseServiceHandle(sc);
 	return ret;
 }
 
@@ -7337,23 +4910,19 @@ bool MsIsServiceRunning(char *name)
 	{
 		return false;
 	}
-	if (ms->IsNt == false)
-	{
-		return false;
-	}
 
-	sc = ms->nt->OpenSCManager(NULL, NULL, GENERIC_READ);
+	sc = OpenSCManager(NULL, NULL, GENERIC_READ);
 	if (sc == NULL)
 	{
 		return false;
 	}
 
-	service = ms->nt->OpenService(sc, name, GENERIC_READ);
+	service = OpenService(sc, name, GENERIC_READ);
 	if (service != NULL)
 	{
 		SERVICE_STATUS st;
 		Zero(&st, sizeof(st));
-		if (ms->nt->QueryServiceStatus(service, &st))
+		if (QueryServiceStatus(service, &st))
 		{
 			switch (st.dwCurrentState)
 			{
@@ -7368,10 +4937,10 @@ bool MsIsServiceRunning(char *name)
 			}
 		}
 
-		ms->nt->CloseServiceHandle(service);
+		CloseServiceHandle(service);
 	}
 
-	ms->nt->CloseServiceHandle(sc);
+	CloseServiceHandle(sc);
 	return ret;
 }
 
@@ -7385,30 +4954,26 @@ bool MsUninstallService(char *name)
 	{
 		return false;
 	}
-	if (ms->IsNt == false)
-	{
-		return false;
-	}
 
 	MsStopService(name);
 
-	sc = ms->nt->OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	sc = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (sc == NULL)
 	{
 		return false;
 	}
 
-	service = ms->nt->OpenService(sc, name, SERVICE_ALL_ACCESS);
+	service = OpenService(sc, name, SERVICE_ALL_ACCESS);
 	if (service != NULL)
 	{
-		if (ms->nt->DeleteService(service))
+		if (DeleteService(service))
 		{
 			ret = true;
 		}
-		ms->nt->CloseServiceHandle(service);
+		CloseServiceHandle(service);
 	}
 
-	ms->nt->CloseServiceHandle(sc);
+	CloseServiceHandle(sc);
 
 	if (ret)
 	{
@@ -7428,13 +4993,13 @@ bool MsSetServiceDescription(char *name, wchar_t *description)
 		return false;
 	}
 
-	sc = ms->nt->OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	sc = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (sc == NULL)
 	{
 		return false;
 	}
 
-	service = ms->nt->OpenService(sc, name, SERVICE_ALL_ACCESS);
+	service = OpenService(sc, name, SERVICE_ALL_ACCESS);
 	if (service != NULL)
 	{
 		if (GET_KETA(GetOsInfo()->OsType, 100) >= 2)
@@ -7445,14 +5010,14 @@ bool MsSetServiceDescription(char *name, wchar_t *description)
 			{
 				Zero(&d, sizeof(d));
 				d.lpDescription = description;
-				ms->nt->ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, &d);
+				ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, &d);
 			}
 		}
 
-		ms->nt->CloseServiceHandle(service);
+		CloseServiceHandle(service);
 	}
 
-	ms->nt->CloseServiceHandle(sc);
+	CloseServiceHandle(sc);
 
 	return true;
 }
@@ -7476,13 +5041,13 @@ bool MsUpdateServiceConfig(char *name)
 		}
 	}
 
-	sc = ms->nt->OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	sc = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (sc == NULL)
 	{
 		return false;
 	}
 
-	service = ms->nt->OpenService(sc, name, SERVICE_ALL_ACCESS);
+	service = OpenService(sc, name, SERVICE_ALL_ACCESS);
 	if (service != NULL)
 	{
 		if (GET_KETA(GetOsInfo()->OsType, 100) >= 2)
@@ -7497,7 +5062,7 @@ bool MsUpdateServiceConfig(char *name)
 			action.cActions = 3;
 			action.lpsaActions = e;
 			action.dwResetPeriod = 1 * 60 * 60 * 24;
-			ms->nt->ChangeServiceConfig2(service, SERVICE_CONFIG_FAILURE_ACTIONS, &action);
+			ChangeServiceConfig2(service, SERVICE_CONFIG_FAILURE_ACTIONS, &action);
 
 			MsRegWriteInt(REG_LOCAL_MACHINE, "Software\\" GC_REG_COMPANY_NAME "\\Update Service Config", name, 1);
 		}
@@ -7517,14 +5082,14 @@ bool MsUpdateServiceConfig(char *name)
 			{
 				Zero(&d, sizeof(d));
 				d.lpDescription = description;
-				ms->nt->ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, &d);
+				ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, &d);
 			}
 		}
 
-		ms->nt->CloseServiceHandle(service);
+		CloseServiceHandle(service);
 	}
 
-	ms->nt->CloseServiceHandle(sc);
+	CloseServiceHandle(sc);
 
 	return true;
 }
@@ -7541,10 +5106,7 @@ bool MsInstallDeviceDriverW(char *name, wchar_t *title, wchar_t *path, UINT *err
 	{
 		return false;
 	}
-	if (ms->IsNt == false)
-	{
-		return false;
-	}
+
 	if (error_code == NULL)
 	{
 		error_code = &temp_int;
@@ -7554,14 +5116,14 @@ bool MsInstallDeviceDriverW(char *name, wchar_t *title, wchar_t *path, UINT *err
 
 	StrToUni(name_w, sizeof(name_w), name);
 
-	sc = ms->nt->OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	sc = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (sc == NULL)
 	{
 		*error_code = GetLastError();
 		return false;
 	}
 
-	service = ms->nt->CreateServiceW(sc, name_w, title, SERVICE_ALL_ACCESS,
+	service = CreateServiceW(sc, name_w, title, SERVICE_ALL_ACCESS,
 		SERVICE_KERNEL_DRIVER, SERVICE_DEMAND_START,
 		SERVICE_ERROR_NORMAL, path, NULL, NULL, NULL, NULL, NULL);
 
@@ -7569,14 +5131,14 @@ bool MsInstallDeviceDriverW(char *name, wchar_t *title, wchar_t *path, UINT *err
 	{
 		ret = true;
 
-		ms->nt->CloseServiceHandle(service);
+		CloseServiceHandle(service);
 	}
 	else
 	{
 		*error_code = GetLastError();
 	}
 
-	ms->nt->CloseServiceHandle(sc);
+	CloseServiceHandle(sc);
 
 	if (ret)
 	{
@@ -7587,21 +5149,6 @@ bool MsInstallDeviceDriverW(char *name, wchar_t *title, wchar_t *path, UINT *err
 }
 
 // Install the service
-bool MsInstallService(char *name, char *title, wchar_t *description, char *path)
-{
-	wchar_t title_w[MAX_PATH];
-	wchar_t path_w[MAX_PATH];
-	// Validate arguments
-	if (name == NULL || title == NULL || path == NULL)
-	{
-		return false;
-	}
-
-	StrToUni(title_w, sizeof(title_w), title);
-	StrToUni(path_w, sizeof(path_w), path);
-
-	return MsInstallServiceW(name, title_w, description, path_w);
-}
 bool MsInstallServiceW(char *name, wchar_t *title, wchar_t *description, wchar_t *path)
 {
 	return MsInstallServiceExW(name, title, description, path, NULL);
@@ -7617,10 +5164,7 @@ bool MsInstallServiceExW(char *name, wchar_t *title, wchar_t *description, wchar
 	{
 		return false;
 	}
-	if (ms->IsNt == false)
-	{
-		return false;
-	}
+
 	if (error_code == NULL)
 	{
 		error_code = &temp_int;
@@ -7630,15 +5174,15 @@ bool MsInstallServiceExW(char *name, wchar_t *title, wchar_t *description, wchar
 
 	StrToUni(name_w, sizeof(name_w), name);
 
-	sc = ms->nt->OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	sc = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (sc == NULL)
 	{
 		*error_code = GetLastError();
 		return false;
 	}
 
-	service = ms->nt->CreateServiceW(sc, name_w, title, SERVICE_ALL_ACCESS,
-		SERVICE_WIN32_OWN_PROCESS | (MsIsVista() ? 0 : SERVICE_INTERACTIVE_PROCESS), SERVICE_AUTO_START,
+	service = CreateServiceW(sc, name_w, title, SERVICE_ALL_ACCESS,
+		SERVICE_WIN32_OWN_PROCESS, SERVICE_AUTO_START,
 		SERVICE_ERROR_NORMAL, path, NULL, NULL, NULL, NULL, NULL);
 
 	if (service != NULL)
@@ -7652,7 +5196,7 @@ bool MsInstallServiceExW(char *name, wchar_t *title, wchar_t *description, wchar
 			SC_ACTION *e;
 			Zero(&d, sizeof(d));
 			d.lpDescription = description;
-			ms->nt->ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, &d);
+			ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, &d);
 			Zero(&action, sizeof(action));
 			e = ZeroMalloc(sizeof(SC_ACTION) * 3);
 			e[0].Delay = 10000; e[0].Type = SC_ACTION_RESTART;
@@ -7661,19 +5205,19 @@ bool MsInstallServiceExW(char *name, wchar_t *title, wchar_t *description, wchar
 			action.cActions = 3;
 			action.lpsaActions = e;
 			action.dwResetPeriod = 1 * 60 * 60 * 24;
-			ms->nt->ChangeServiceConfig2(service, SERVICE_CONFIG_FAILURE_ACTIONS, &action);
+			ChangeServiceConfig2(service, SERVICE_CONFIG_FAILURE_ACTIONS, &action);
 
 			Free(e);
 		}
 
-		ms->nt->CloseServiceHandle(service);
+		CloseServiceHandle(service);
 	}
 	else
 	{
 		*error_code = GetLastError();
 	}
 
-	ms->nt->CloseServiceHandle(sc);
+	CloseServiceHandle(sc);
 
 	if (ret)
 	{
@@ -7694,25 +5238,21 @@ bool MsIsServiceInstalled(char *name)
 	{
 		return false;
 	}
-	if (ms->IsNt == false)
-	{
-		return false;
-	}
 
-	sc = ms->nt->OpenSCManager(NULL, NULL, GENERIC_READ);
+	sc = OpenSCManager(NULL, NULL, GENERIC_READ);
 	if (sc == NULL)
 	{
 		return false;
 	}
 
-	service = ms->nt->OpenService(sc, name, GENERIC_READ);
+	service = OpenService(sc, name, GENERIC_READ);
 	if (service != NULL)
 	{
 		ret = true;
 	}
 
-	ms->nt->CloseServiceHandle(service);
-	ms->nt->CloseServiceHandle(sc);
+	CloseServiceHandle(service);
+	CloseServiceHandle(sc);
 
 	return ret;
 }
@@ -7730,12 +5270,6 @@ UINT MsGetProcessId()
 	return GetCurrentProcessId();
 }
 
-// Get the MS structure
-MS *MsGetMs()
-{
-	return ms;
-}
-
 // Lower the priority of the thread to lowest
 void MsSetThreadPriorityIdle()
 {
@@ -7746,12 +5280,6 @@ void MsSetThreadPriorityIdle()
 void MsSetThreadPriorityHigh()
 {
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
-}
-
-// Lower the priority of the thread
-void MsSetThreadPriorityLow()
-{
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 }
 
 // Raise the priority of the thread to highest
@@ -7808,17 +5336,7 @@ void MsApplyTcpConfig()
 // Check whether the dynamic configuration of TCP is supported in current state
 bool MsIsTcpConfigSupported()
 {
-	if (MsIsNt() && MsIsAdmin())
-	{
-		UINT type = GetOsInfo()->OsType;
-
-		if (GET_KETA(type, 100) >= 2)
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return MsIsAdmin();
 }
 
 // Read the TCP settings from the registry setting
@@ -7830,31 +5348,24 @@ bool MsLoadTcpConfigReg(MS_TCP *tcp)
 		return false;
 	}
 
-	if (MsIsNt())
-	{
-		Zero(tcp, sizeof(MS_TCP));
+	Zero(tcp, sizeof(MS_TCP));
 
-		if (MsRegIsValueEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "RecvWindowSize", true) == false ||
-			MsRegIsValueEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "SendWindowSize", true) == false)
-		{
-			return false;
-		}
-
-		tcp->RecvWindowSize = MsRegReadIntEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "RecvWindowSize", true);
-		tcp->SendWindowSize = MsRegReadIntEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "SendWindowSize", true);
-
-		return true;
-	}
-	else
+	if (MsRegIsValueEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "RecvWindowSize", true) == false ||
+		MsRegIsValueEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "SendWindowSize", true) == false)
 	{
 		return false;
 	}
+
+	tcp->RecvWindowSize = MsRegReadIntEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "RecvWindowSize", true);
+	tcp->SendWindowSize = MsRegReadIntEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "SendWindowSize", true);
+
+	return true;
 }
 
 // Remove the TCP settings from the registry
 void MsDeleteTcpConfigReg()
 {
-	if (MsIsNt() && MsIsAdmin())
+	if (MsIsAdmin())
 	{
 		MsRegDeleteKeyEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, true);
 	}
@@ -7869,7 +5380,7 @@ void MsSaveTcpConfigReg(MS_TCP *tcp)
 		return;
 	}
 
-	if (MsIsNt() && MsIsAdmin())
+	if (MsIsAdmin())
 	{
 		MsRegWriteIntEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "RecvWindowSize", tcp->RecvWindowSize, true);
 		MsRegWriteIntEx(REG_LOCAL_MACHINE, MS_REG_TCP_SETTING_KEY, "SendWindowSize", tcp->SendWindowSize, true);
@@ -7887,25 +5398,22 @@ void MsGetTcpConfig(MS_TCP *tcp)
 
 	Zero(tcp, sizeof(MS_TCP));
 
-	if (MsIsNt())
-	{
-		UINT v;
-		// Initialize the network setting
-		MsInitGlobalNetworkConfig();
+	UINT v;
+	// Initialize the network setting
+	MsInitGlobalNetworkConfig();
 
-		// Read the value of TcpWindowSize or GlobalMaxTcpWindowSize if there is
-		v = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "TcpWindowSize");
-		tcp->RecvWindowSize = MAX(tcp->RecvWindowSize, v);
+	// Read the value of TcpWindowSize or GlobalMaxTcpWindowSize if there is
+	v = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "TcpWindowSize");
+	tcp->RecvWindowSize = MAX(tcp->RecvWindowSize, v);
 
-		v = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "GlobalMaxTcpWindowSize");
-		tcp->RecvWindowSize = MAX(tcp->RecvWindowSize, v);
+	v = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "GlobalMaxTcpWindowSize");
+	tcp->RecvWindowSize = MAX(tcp->RecvWindowSize, v);
 
-		v = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters", "DefaultReceiveWindow");
-		tcp->RecvWindowSize = MAX(tcp->RecvWindowSize, v);
+	v = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters", "DefaultReceiveWindow");
+	tcp->RecvWindowSize = MAX(tcp->RecvWindowSize, v);
 
-		// Read the value of DefaultSendWindow if there is
-		tcp->SendWindowSize = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters", "DefaultSendWindow");
-	}
+	// Read the value of DefaultSendWindow if there is
+	tcp->SendWindowSize = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters", "DefaultSendWindow");
 }
 
 // Write the TCP settings
@@ -7917,7 +5425,7 @@ void MsSetTcpConfig(MS_TCP *tcp)
 		return;
 	}
 
-	if (MsIsNt() && MsIsAdmin())
+	if (MsIsAdmin())
 	{
 		bool window_scaling = false;
 		UINT tcp1323opts;
@@ -7990,41 +5498,26 @@ void MsSetTcpConfig(MS_TCP *tcp)
 // Initialize the global network settings
 void MsInitGlobalNetworkConfig()
 {
-	if (MsIsNt())
-	{
-		UINT current_window_size;
-		current_window_size = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "TcpWindowSize");
+	UINT current_window_size = MsRegReadInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "TcpWindowSize");
 
-		if (current_window_size == 65535 || current_window_size == 5980160 ||
-			current_window_size == 16777216 || current_window_size == 16777214)
-		{
-			// Remove the strange value which is written by older version of PacketiX VPN
-			MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters",
-				"DefaultReceiveWindow");
-			MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters",
-				"DefaultSendWindow");
-			MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
-				"Tcp1323Opts");
-			MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
-				"TcpWindowSize");
-			MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
-				"GlobalMaxTcpWindowSize");
-
-			// Set vpn_no_change = true
-			MsRegWriteInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "vpn_no_change", 1);
-			MsRegWriteInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters", "vpn_no_change", 1);
-		}
-	}
-	else
+	if (current_window_size == 65535 || current_window_size == 5980160 ||
+		current_window_size == 16777216 || current_window_size == 16777214)
 	{
-		if (MsRegReadInt(REG_LOCAL_MACHINE,
-			"System\\CurrentControlSet\\Services\\VxD\\MSTCP",
-			"packetix_no_optimize") == 0)
-		{
-			// Disable the DeadGWDetect
-			MsRegWriteStr(REG_LOCAL_MACHINE, "System\\CurrentControlSet\\Services\\VxD\\MSTCP",
-				"DeadGWDetect", "0");
-		}
+		// Remove the strange value which is written by older version of PacketiX VPN
+		MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters",
+			"DefaultReceiveWindow");
+		MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters",
+			"DefaultSendWindow");
+		MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
+			"Tcp1323Opts");
+		MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
+			"TcpWindowSize");
+		MsRegDeleteValue(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
+			"GlobalMaxTcpWindowSize");
+
+		// Set vpn_no_change = true
+		MsRegWriteInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "vpn_no_change", 1);
+		MsRegWriteInt(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\AFD\\Parameters", "vpn_no_change", 1);
 	}
 
 	MsApplyTcpConfig();
@@ -8035,10 +5528,6 @@ void MsDisableNetworkOffloadingEtc()
 {
 	wchar_t netsh[MAX_SIZE];
 	UINT exec_timeout = 10000;
-	if (MsIsNt() == false)
-	{
-		return;
-	}
 
 	// Get the path of netsh.exe
 	CombinePathW(netsh, sizeof(netsh), MsGetSystem32DirW(), L"netsh.exe");
@@ -8047,26 +5536,12 @@ void MsDisableNetworkOffloadingEtc()
 	MsRegWriteIntEx2(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "DisableTaskOffload", 1, false, true);
 	MsRegWriteIntEx2(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "TcpNumConnections", TCP_MAX_NUM_CONNECTIONS, false, true);
 
-	if (MsIsVista() == false)
-	{
-		// Windows Server 2003 or earlier
-		MsRegWriteIntEx2(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "EnableRSS", 1, false, true);
-		MsRegWriteIntEx2(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "EnableTCPChimney", 1, false, true);
-		MsRegWriteIntEx2(REG_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "EnableTCPA", 1, false, true);
-
-		Win32RunAndWaitProcess(netsh, L"netsh int ip set chimney disabled", true, true, exec_timeout);
-		SleepThread(250);
-	}
-	else
-	{
-		// Windows Vista or later
-		Win32RunAndWaitProcess(netsh, L"int ipv4 set global taskoffload=disabled", true, true, exec_timeout);
-		SleepThread(250);
-		Win32RunAndWaitProcess(netsh, L"int ipv6 set global taskoffload=disabled", true, true, exec_timeout);
-		SleepThread(250);
-		Win32RunAndWaitProcess(netsh, L"int tcp set global chimney=disabled", true, true, exec_timeout);
-		SleepThread(250);
-	}
+	Win32RunAndWaitProcess(netsh, L"int ipv4 set global taskoffload=disabled", true, true, exec_timeout);
+	SleepThread(250);
+	Win32RunAndWaitProcess(netsh, L"int ipv6 set global taskoffload=disabled", true, true, exec_timeout);
+	SleepThread(250);
+	Win32RunAndWaitProcess(netsh, L"int tcp set global chimney=disabled", true, true, exec_timeout);
+	SleepThread(250);
 }
 
 // Upgrade the virtual LAN card
@@ -8084,28 +5559,14 @@ bool MsUpgradeVLan(char *tag_name, char *connection_tag_name, char *instance_nam
 }
 bool MsUpgradeVLanWithoutLock(char *tag_name, char *connection_tag_name, char *instance_name, MS_DRIVER_VER *ver)
 {
-	wchar_t infpath[MAX_PATH];
 	char hwid[MAX_PATH];
 	wchar_t hwid_w[MAX_PATH];
 	bool ret = false;
-	bool need_reboot;
-	bool before_status;
 	UCHAR old_mac_address[6];
-	UCHAR new_mac_address[6];
 	char *s;
-	NO_WARNING *nw;
-	char neo_sys[MAX_PATH];
-	char *reg_key;
-	UINT i;
 	// Validate arguments
 	if (instance_name == NULL || tag_name == NULL || connection_tag_name == NULL || ver == NULL)
 	{
-		return false;
-	}
-
-	if (MsIsNt() == false)
-	{
-		// Can not be upgraded in Windows 9x
 		return false;
 	}
 
@@ -8129,38 +5590,6 @@ bool MsUpgradeVLanWithoutLock(char *tag_name, char *connection_tag_name, char *i
 		// Not registered
 		return false;
 	}
-
-	reg_key = MsGetNetCfgRegKeyName(tag_name, instance_name);
-
-	if (IsEmptyStr(reg_key) == false)
-	{
-		// Add a value to the registry key
-		MsRegWriteInt(REG_LOCAL_MACHINE, reg_key, "*IfType", 6);
-		MsRegWriteInt(REG_LOCAL_MACHINE, reg_key, "*MediaType", 0);
-		MsRegWriteInt(REG_LOCAL_MACHINE, reg_key, "*PhysicalMediaType", 0);
-	}
-	Free(reg_key);
-
-	// Get the .sys file name that is currently being used
-	if (MsGetNeoDeiverFilename(neo_sys, sizeof(neo_sys), instance_name) == false)
-	{
-		if (MsIsInfCatalogRequired())
-		{
-			// Can not be upgraded if getting current .sys file name failed
-			// in the Windows 8 or later
-			return false;
-		}
-
-		// Create a new file name because it is unknown
-		if (MsMakeNewNeoDriverFilename(neo_sys, sizeof(neo_sys)) == false)
-		{
-			// Failure
-			return false;
-		}
-	}
-
-	// Get the current operating status
-	before_status = MsIsVLanEnabled(instance_name);
 
 	// Get the previous MAC address
 	s = MsGetMacAddress(tag_name, instance_name);
@@ -8186,184 +5615,15 @@ bool MsUpgradeVLanWithoutLock(char *tag_name, char *connection_tag_name, char *i
 		FreeBuf(b);
 	}
 
-	// Starting the installation
-	if (MsStartDriverInstall(instance_name, IsZero(old_mac_address, 6) ? NULL : old_mac_address, neo_sys,
-		new_mac_address, ver) == false)
-	{
-		return false;
-	}
-	MsGetDriverPath(instance_name, NULL, NULL, infpath, NULL, NULL, NULL, neo_sys);
+	ret = MsUninstallVLanWithoutLock(instance_name);
 
-	nw = NULL;
-
-	//if (MsIsVista() == false)
-	{
-		nw = MsInitNoWarning();
-	}
-
-	// Do the installation
-	if (ms->nt->UpdateDriverForPlugAndPlayDevicesW(
-		NULL, hwid_w, infpath, 1, &need_reboot))
-	{
-		ret = true;
-	}
-	MsFreeNoWarning(nw);
-
-	// Installation complete
-	MsFinishDriverInstall(instance_name, neo_sys);
-
-	for (i = 0;i < 5;i++)
-	{
-		MsInitNetworkConfig(tag_name, instance_name, connection_tag_name);
-		if (MsIsInfCatalogRequired())
-		{
-			// Write the MAC address
-			char mac_address_str[MAX_SIZE];
-			BinToStr(mac_address_str, sizeof(mac_address_str), new_mac_address, sizeof(new_mac_address));
-			MsSetMacAddress(VLAN_ADAPTER_NAME_TAG, instance_name, mac_address_str);
-		}
-
-		SleepThread(MsIsVista() ? 1000 : 300);
-	}
-
-	SleepThread(MsIsVista() ? 1000 : 300);
-
-	// Restore operation
-	if (before_status)
-	{
-		MsEnableVLan(instance_name);
-	}
-	else
-	{
-		MsDisableVLan(instance_name);
-	}
+	ret = MsInstallVLanWithoutLock(tag_name, connection_tag_name, instance_name, ver);
 
 	return ret;
 }
 
-// Test for Windows 9x
-void MsWin9xTest()
-{
-}
-
-// Update the CompatibleIDs of virtual LAN card
-void MsUpdateCompatibleIDs(char *instance_name)
-{
-	TOKEN_LIST *t;
-	char id[MAX_SIZE];
-	char device_title[MAX_SIZE];
-	char device_title_old[MAX_SIZE];
-	// Validate arguments
-	if (instance_name == NULL)
-	{
-		return;
-	}
-
-	Format(id, sizeof(id), DRIVER_DEVICE_ID_TAG, instance_name);
-	Format(device_title, sizeof(device_title), VLAN_ADAPTER_NAME_TAG, instance_name);
-	Format(device_title_old, sizeof(device_title_old), VLAN_ADAPTER_NAME_TAG_OLD, instance_name);
-
-	t = MsRegEnumKey(REG_LOCAL_MACHINE, "Enum\\Root\\Net");
-	if (t != NULL)
-	{
-		UINT i;
-		for (i = 0;i < t->NumTokens;i++)
-		{
-			char keyname[MAX_PATH];
-			char *str;
-			char *title;
-
-			Format(keyname, sizeof(keyname), "Enum\\Root\\Net\\%s", t->Token[i]);
-
-			title = MsRegReadStr(REG_LOCAL_MACHINE, keyname, "DeviceDesc");
-
-			if (title != NULL)
-			{
-				if (StrCmpi(title, device_title) == 0 || StrCmpi(title, device_title_old) == 0)
-				{
-					Format(keyname, sizeof(keyname), "Enum\\Root\\Net\\%s",t->Token[i]);
-					str = MsRegReadStr(REG_LOCAL_MACHINE, keyname, "CompatibleIDs");
-					if (str != NULL)
-					{
-						Free(str);
-					}
-					else
-					{
-						MsRegWriteStr(REG_LOCAL_MACHINE, keyname, "CompatibleIDs", id);
-					}
-				}
-				Free(title);
-			}
-		}
-
-		FreeToken(t);
-	}
-
-	MsRegWriteStr(REG_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Setup", "SourcePath",
-		ms->System32Dir);
-}
-
-// Installing the virtual LAN card (for Win9x)
-bool MsInstallVLan9x(char *instance_name, MS_DRIVER_VER *ver)
-{
-	char sysdir[MAX_PATH];
-	char infdir[MAX_PATH];
-	char otherdir[MAX_PATH];
-	char syspath[MAX_PATH];
-	char syspath2[MAX_PATH];
-	char infpath[MAX_PATH];
-	char vpn16[MAX_PATH];
-	char infpath_src[MAX_PATH];
-	char syspath_src[MAX_PATH];
-	char neo_sys[MAX_PATH];
-	// Validate arguments
-	if (instance_name == NULL || ver == NULL)
-	{
-		return false;
-	}
-
-	StrCpy(sysdir, sizeof(sysdir), MsGetSystem32Dir());
-	Format(infdir, sizeof(infdir), "%s\\inf", MsGetWindowsDir());
-	Format(otherdir, sizeof(otherdir), "%s\\other", infdir);
-	Format(syspath, sizeof(syspath), "%s\\Neo_%s.sys", sysdir, instance_name);
-	Format(syspath2, sizeof(syspath2), "%s\\Neo_%s.sys", infdir, instance_name);
-	Format(infpath, sizeof(infpath), "%s\\Neo_%s.inf", infdir, instance_name);
-	Format(vpn16, sizeof(vpn16), "%s\\vpn16.exe", MsGetMyTempDir());
-
-	MakeDir(otherdir);
-
-	Format(neo_sys, sizeof(neo_sys), DRIVER_INSTALL_SYS_NAME_TAG, instance_name);
-
-	// Copy of vpn16.exe
-	FileCopy("|vpn16.exe", vpn16);
-
-	// Starting the installation
-	if (MsStartDriverInstall(instance_name, NULL, neo_sys, NULL, ver) == false)
-	{
-		return false;
-	}
-	MsGetDriverPathA(instance_name, NULL, NULL, infpath_src, syspath_src, NULL, NULL, neo_sys);
-
-	// Copy of the inf file
-	FileCopy(infpath_src, infpath);
-
-	// Copy of the sys file
-	FileCopy(syspath_src, syspath);
-
-	// Install the device driver
-	if (Run(vpn16, instance_name, false, true) == false)
-	{
-		return false;
-	}
-
-	// Update the CompatibleIDs
-	MsUpdateCompatibleIDs(instance_name);
-
-	return true;
-}
-
 // Child window enumeration procedure
-bool CALLBACK MsEnumChildWindowProc(HWND hWnd, LPARAM lParam)
+BOOL CALLBACK MsEnumChildWindowProc(HWND hWnd, LPARAM lParam)
 {
 	LIST *o = (LIST *)lParam;
 
@@ -8412,7 +5672,7 @@ void MsAddWindowToList(LIST *o, HWND hWnd)
 }
 
 // Enumeration of the window that the thread owns
-bool CALLBACK MsEnumThreadWindowProc(HWND hWnd, LPARAM lParam)
+BOOL CALLBACK MsEnumThreadWindowProc(HWND hWnd, LPARAM lParam)
 {
 	LIST *o = (LIST *)lParam;
 
@@ -8465,6 +5725,7 @@ BOOL CALLBACK EnumChildWindowProc(HWND hWnd, LPARAM lParam)
 	LIST *o;
 	HWND hParent;
 	char c1[MAX_SIZE], c2[MAX_SIZE];
+	bool ok = false;
 	// Validate arguments
 	if (hWnd == NULL || p == NULL)
 	{
@@ -8487,6 +5748,19 @@ BOOL CALLBACK EnumChildWindowProc(HWND hWnd, LPARAM lParam)
 
 	if (p->include_ipcontrol || (StrCmpi(c1, "SysIPAddress32") != 0 && (IsEmptyStr(c2) || StrCmpi(c2, "SysIPAddress32") != 0)))
 	{
+		ok = true;
+	}
+
+	if (MsIsWine())
+	{
+		if (StrCmpi(c1, "SysIPAddress32") == 0 || StrCmpi(c2, "SysIPAddress32") == 0)
+		{
+			ok = true;
+		}
+	}
+
+	if (ok)
+	{
 		AddWindow(o, hWnd);
 
 		if (p->no_recursion == false)
@@ -8496,24 +5770,6 @@ BOOL CALLBACK EnumChildWindowProc(HWND hWnd, LPARAM lParam)
 	}
 
 	return TRUE;
-}
-LIST *EnumAllWindow()
-{
-	return EnumAllWindowEx(false, false);
-}
-LIST *EnumAllWindowEx(bool no_recursion, bool include_ipcontrol)
-{
-	ENUM_CHILD_WINDOW_PARAM p;
-	LIST *o = NewWindowList();
-
-	Zero(&p, sizeof(p));
-	p.o = o;
-	p.no_recursion = no_recursion;
-	p.include_ipcontrol = include_ipcontrol;
-
-	EnumWindows(EnumChildWindowProc, (LPARAM)&p);
-
-	return o;
 }
 LIST *EnumAllTopWindow()
 {
@@ -8616,27 +5872,6 @@ LIST *NewWindowList()
 	return NewListFast(CmpWindowList);
 }
 
-// Determine whether it's Windows Vista or later
-bool MsIsVista()
-{
-	OS_INFO *info = GetOsInfo();
-
-	if (info == NULL)
-	{
-		return false;
-	}
-
-	if (OS_IS_WINDOWS_NT(info->OsType))
-	{
-		if (GET_KETA(info->OsType, 100) >= 5)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 // Determine whether it's Windows 7 or later
 bool MsIsWindows7()
 {
@@ -8647,18 +5882,67 @@ bool MsIsWindows7()
 		return false;
 	}
 
-	if (OS_IS_WINDOWS_NT(info->OsType))
+	if (GET_KETA(info->OsType, 100) >= 6)
 	{
-		if (GET_KETA(info->OsType, 100) >= 6)
-		{
-			return true;
-		}
+		return true;
 	}
 
 	return false;
 }
 
-// Determine whether it's Windows 8 later
+// Determine whether it's Windows 10 or later
+bool MsIsWindows10()
+{
+	OS_INFO *info = GetOsInfo();
+
+	if (info == NULL)
+	{
+		return false;
+	}
+
+	if (GET_KETA(info->OsType, 100) == 7)
+	{
+		if (GET_KETA(info->OsType, 1) >= 2)
+		{
+			return true;
+		}
+	}
+
+	if (GET_KETA(info->OsType, 100) >= 8)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+// Determine whether it's Windows 8.1 or later
+bool MsIsWindows81()
+{
+	OS_INFO *info = GetOsInfo();
+
+	if (info == NULL)
+	{
+		return false;
+	}
+
+	if (GET_KETA(info->OsType, 100) == 7)
+	{
+		if (GET_KETA(info->OsType, 1) >= 1)
+		{
+			return true;
+		}
+	}
+
+	if (GET_KETA(info->OsType, 100) >= 8)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+// Determine whether it's Windows 8 or later
 bool MsIsWindows8()
 {
 	OS_INFO *info = GetOsInfo();
@@ -8668,12 +5952,9 @@ bool MsIsWindows8()
 		return false;
 	}
 
-	if (OS_IS_WINDOWS_NT(info->OsType))
+	if (GET_KETA(info->OsType, 100) >= 7)
 	{
-		if (GET_KETA(info->OsType, 100) >= 7)
-		{
-			return true;
-		}
+		return true;
 	}
 
 	return false;
@@ -8708,28 +5989,6 @@ bool MsGetWindowOwnerProcessExeName(char *path, UINT size, HWND hWnd)
 
 	return true;
 }
-bool MsGetWindowOwnerProcessExeNameW(wchar_t *path, UINT size, HWND hWnd)
-{
-	DWORD procId = 0;
-	// Validate arguments
-	if (path == NULL || hWnd == NULL)
-	{
-		return false;
-	}
-
-	GetWindowThreadProcessId(hWnd, &procId);
-	if (procId == 0)
-	{
-		return false;
-	}
-
-	if (MsGetProcessExeNameW(path, size, procId) == false)
-	{
-		return false;
-	}
-
-	return true;
-}
 
 // Get the process path from process ID
 bool MsGetProcessExeName(char *path, UINT size, UINT id)
@@ -8756,30 +6015,6 @@ bool MsGetProcessExeName(char *path, UINT size, UINT id)
 
 	return ret;
 }
-bool MsGetProcessExeNameW(wchar_t *path, UINT size, UINT id)
-{
-	LIST *o;
-	MS_PROCESS *proc;
-	bool ret = false;
-	// Validate arguments
-	if (path == NULL)
-	{
-		return false;
-	}
-
-	o = MsGetProcessList();
-	proc = MsSearchProcessById(o, id);
-
-	if (proc != NULL)
-	{
-		ret = true;
-		UniStrCpy(path, size, proc->ExeFilenameW);
-	}
-
-	MsFreeProcessList(o);
-
-	return ret;
-}
 
 // Close the alert dialog
 bool MsCloseWarningWindow(NO_WARNING *nw, UINT thread_id)
@@ -8789,7 +6024,7 @@ bool MsCloseWarningWindow(NO_WARNING *nw, UINT thread_id)
 	bool ret = false;
 	bool press = false;
 
-	if (MsIsVista() == false || nw->StartTimer == 0)
+	if (nw->StartTimer == 0)
 	{
 		press = true;
 	}
@@ -8799,89 +6034,25 @@ bool MsCloseWarningWindow(NO_WARNING *nw, UINT thread_id)
 		press = true;
 	}
 
-	if (MsIsVista() == false)
-	{
-		o = NewListFast(NULL);
-		EnumThreadWindows(thread_id, MsEnumThreadWindowProc, (LPARAM)o);
-	}
-	else
-	{
-		o = EnumAllTopWindow();
-	}
+	o = EnumAllTopWindow();
 
 	for (i = 0;i < LIST_NUM(o);i++)
 	{
 		HWND hWnd;
+
+		if (nw->Halt)
+		{
+			break;
+		}
 		
-		if (MsIsVista() == false)
-		{
-			hWnd = LIST_DATA(o, i);
-		}
-		else
-		{
-			hWnd = *((HWND *)LIST_DATA(o, i));
-		}
+		hWnd = *((HWND *)LIST_DATA(o, i));
 
 		if (hWnd != NULL)
 		{
-			OS_INFO *info = GetOsInfo();
-
-			if (MsIsNt())
+			if (true)
 			{
 				// Get whether this window is a warning screen of driver
-				if (MsIsVista() == false)
-				{
-					// Other than Windows Vista
-					HWND hStatic, hOk, hCancel, hDetail;
-
-					hStatic = GetDlgItem(hWnd, 0x14C1);
-					hOk = GetDlgItem(hWnd, 0x14B7);
-					hCancel = GetDlgItem(hWnd, 0x14BA);
-					hDetail = GetDlgItem(hWnd, 0x14B9);
-
-					if ((hStatic != NULL || hDetail != NULL) && hOk != NULL && hCancel != NULL)
-					{
-						char tmp[MAX_SIZE];
-						bool b = false;
-
-						if (GetClassName(hStatic, tmp, sizeof(tmp)) != 0)
-						{
-							if (StrCmpi(tmp, "static") == 0)
-							{
-								b = true;
-							}
-						}
-
-						if (GetClassName(hDetail, tmp, sizeof(tmp)) != 0)
-						{
-							if (StrCmpi(tmp, "button") == 0)
-							{
-								b = true;
-							}
-						}
-
-						if (b)
-						{
-							if (GetClassName(hOk, tmp, sizeof(tmp)) != 0)
-							{
-								if (StrCmpi(tmp, "button") == 0)
-								{
-									if (GetClassName(hCancel, tmp, sizeof(tmp)) != 0)
-									{
-										if (StrCmpi(tmp, "button") == 0)
-										{
-											// Press the OK button since it was found
-											PostMessage(hWnd, WM_COMMAND, 0x14B7, 0);
-
-											ret = true;
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-				else
+				if (true)
 				{
 					// Windows Vista
 					char exe[MAX_PATH];
@@ -9004,14 +6175,7 @@ bool MsCloseWarningWindow(NO_WARNING *nw, UINT thread_id)
 		}
 	}
 
-	if (MsIsVista() == false)
-	{
-		ReleaseList(o);
-	}
-	else
-	{
-		FreeWindowList(o);
-	}
+	FreeWindowList(o);
 
 	if (press == false)
 	{
@@ -9049,12 +6213,7 @@ void MsNoWarningThreadProc(THREAD *thread, void *param)
 
 	NoticeThreadInit(thread);
 
-	interval = 50;
-
-	if (MsIsVista())
-	{
-		interval = 1000;
-	}
+	interval = 1000;
 
 	i = 0;
 
@@ -9129,26 +6288,6 @@ NO_WARNING *MsInitNoWarningEx(UINT start_timer)
 	NO_WARNING *nw = ZeroMalloc(sizeof(NO_WARNING));
 
 	nw->StartTimer = (UINT64)start_timer;
-
-	// Get the current sound file name
-	if (MsIsVista() == false)
-	{
-		wchar_t *tmp;
-
-		// Turn off the unnecessary warning tone in Windows XP or earlier
-		tmp = MsRegReadStrW(REG_CURRENT_USER, "AppEvents\\Schemes\\Apps\\.Default\\SystemAsterisk\\.Current", "");
-		if (UniIsEmptyStr(tmp) == false)
-		{
-			nw->SoundFileName = CopyUniStr(tmp);
-
-			MsRegWriteStrW(REG_CURRENT_USER,
-				"AppEvents\\Schemes\\Apps\\.Default\\SystemAsterisk\\.Current",
-				"", L"");
-		}
-
-		Free(tmp);
-	}
-
 	nw->ThreadId = GetCurrentThreadId();
 	nw->HaltEvent = NewEvent();
 
@@ -9173,22 +6312,9 @@ void MsFreeNoWarning(NO_WARNING *nw)
 	Set(nw->HaltEvent);
 
 	WaitThread(nw->NoWarningThread, INFINITE);
+
 	ReleaseThread(nw->NoWarningThread);
-
 	ReleaseEvent(nw->HaltEvent);
-
-	if (MsIsVista() == false)
-	{
-		if (nw->SoundFileName != NULL)
-		{
-			MsRegWriteStrExpandW(REG_CURRENT_USER,
-				"AppEvents\\Schemes\\Apps\\.Default\\SystemAsterisk\\.Current",
-				"", nw->SoundFileName);
-
-			Free(nw->SoundFileName);
-		}
-	}
-
 	Free(nw);
 }
 
@@ -9201,7 +6327,7 @@ void MsGetInfCatalogDir(char *dst, UINT size)
 		return;
 	}
 
-	Format(dst, size, "|inf\\%s", (MsIsX64() ? "x64" : "x86"));
+	Format(dst, size, "|DriverPackages\\%s\\%s", (MsIsWindows10() ? "Neo6_Win10" : "Neo6_Win8"), (MsIsX64() ? "x64" : "x86"));
 }
 
 // Examine whether the virtual LAN card name can be used as a instance name of the VLAN
@@ -9218,7 +6344,8 @@ bool MsIsValidVLanInstanceNameForInfCatalog(char *instance_name)
 
 	MsGetInfCatalogDir(src_dir, sizeof(src_dir));
 
-	Format(tmp, sizeof(tmp), "%s\\INF_%s.inf", src_dir, instance_name);
+	Format(tmp, sizeof(tmp), "%s\\Neo6_%s_%s.inf", src_dir, (MsIsX64() ? "x64" : "x86"), instance_name);
+
 	ret = IsFile(tmp);
 
 	return ret;
@@ -9329,12 +6456,6 @@ bool MsInstallVLanWithoutLock(char *tag_name, char *connection_tag_name, char *i
 		return false;
 	}
 
-	if (MsIsNt() == false)
-	{
-		// For Windows 9x
-		return MsInstallVLan9x(instance_name, ver);
-	}
-
 	if (MsIsInfCatalogRequired())
 	{
 		if (MsIsValidVLanInstanceNameForInfCatalog(instance_name) == false)
@@ -9368,7 +6489,14 @@ bool MsInstallVLanWithoutLock(char *tag_name, char *connection_tag_name, char *i
 	}
 	else
 	{
-		Format(neo_sys, sizeof(neo_sys), DRIVER_INSTALL_SYS_NAME_TAG, instance_name);
+		if (MsIsWindows10() == false)
+		{
+			Format(neo_sys, sizeof(neo_sys), "Neo_%s.sys", instance_name);
+		}
+		else
+		{
+			Format(neo_sys, sizeof(neo_sys), "Neo6_%s_%s.sys", (MsIsX64() ? "x64" : "x86"), instance_name);
+		}
 	}
 
 	// Starting the Installation
@@ -9379,10 +6507,7 @@ bool MsInstallVLanWithoutLock(char *tag_name, char *connection_tag_name, char *i
 	MsGetDriverPath(instance_name, NULL, NULL, infpath, NULL, NULL, NULL, neo_sys);
 
 	// Delete the device information that is left on fail of installation
-	if (MsIsNt())
-	{
-		MsDeleteTroubleVLAN(tag_name, instance_name);
-	}
+	MsDeleteTroubleVLAN(tag_name, instance_name);
 
 	// Call the Win32 API
 	ret = MsInstallVLanInternal(infpath, hwid_w, hwid);
@@ -9401,13 +6526,13 @@ bool MsInstallVLanWithoutLock(char *tag_name, char *connection_tag_name, char *i
 			MsSetMacAddress(VLAN_ADAPTER_NAME_TAG, instance_name, mac_address_str);
 		}
 
-		SleepThread(MsIsVista() ? 1000 : 300);
+		SleepThread(1000);
 	}
 
 	if (ret)
 	{
 		MsDisableVLan(instance_name);
-		SleepThread(MsIsVista() ? 1000 : 300);
+		SleepThread(1000);
 		MsEnableVLan(instance_name);
 	}
 
@@ -9422,7 +6547,7 @@ void MsTest()
 // Install a virtual LAN card (by calling Win32 API)
 bool MsInstallVLanInternal(wchar_t *infpath, wchar_t *hwid_w, char *hwid)
 {
-	bool need_reboot;
+	BOOL need_reboot;
 	bool ret = false;
 	wchar_t inf_class_name[MAX_PATH];
 	GUID inf_class_guid;
@@ -9463,19 +6588,14 @@ bool MsInstallVLanInternal(wchar_t *infpath, wchar_t *hwid_w, char *hwid)
 				if (SetupDiSetDeviceRegistryProperty(device_info, &device_info_data,
 					SPDRP_HARDWAREID, (BYTE *)hwid_copy, sizeof(hwid_copy)))
 				{
-					NO_WARNING *nw = NULL;
-
-					//if (MsIsVista() == false)
-					{
-						nw = MsInitNoWarning();
-					}
+					NO_WARNING *nw =  MsInitNoWarning();
 
 					// Start the class installer
 					if (SetupDiCallClassInstaller(DIF_REGISTERDEVICE, device_info,
 						&device_info_data))
 					{
 						// Do the installation
-						if (ms->nt->UpdateDriverForPlugAndPlayDevicesW(
+						if (UpdateDriverForPlugAndPlayDevicesW(
 							NULL, hwid_w, infpath, 1, &need_reboot))
 						{
 							ret = true;
@@ -9606,7 +6726,7 @@ HDEVINFO MsGetDevInfoFromDeviceId(SP_DEVINFO_DATA *dev_info_data, char *device_i
 bool MsIsDeviceRunning(HDEVINFO info, SP_DEVINFO_DATA *dev_info_data)
 {
 	SP_DEVINFO_LIST_DETAIL_DATA detail;
-	UINT status = 0, problem = 0;
+	DWORD status = 0, problem = 0;
 	// Validate arguments
 	if (info == NULL || dev_info_data == NULL)
 	{
@@ -9617,7 +6737,7 @@ bool MsIsDeviceRunning(HDEVINFO info, SP_DEVINFO_DATA *dev_info_data)
 	detail.cbSize = sizeof(detail);
 
 	if (SetupDiGetDeviceInfoListDetail(info, &detail) == false ||
-		ms->nt->CM_Get_DevNode_Status_Ex(&status, &problem, dev_info_data->DevInst,
+		CM_Get_DevNode_Status_Ex(&status, &problem, dev_info_data->DevInst,
 		0, detail.RemoteMachineHandle) != CR_SUCCESS)
 	{
 		return false;
@@ -9715,7 +6835,7 @@ bool MsDeleteDevice(HDEVINFO info, SP_DEVINFO_DATA *dev_info_data)
 		return false;
 	}
 
-	ret = ms->nt->CM_Get_Device_ID_Ex(dev_info_data->DevInst, device_id, sizeof(device_id),
+	ret = CM_Get_Device_ID_Ex(dev_info_data->DevInst, device_id, sizeof(device_id),
 		0, detail.RemoteMachineHandle);
 	if (ret != CR_SUCCESS)
 	{
@@ -9768,11 +6888,6 @@ bool MsEnableVLanWithoutLock(char *instance_name)
 		return false;
 	}
 
-	if (MsIsNt() == false)
-	{
-		return false;
-	}
-
 	Format(tmp, sizeof(tmp), DRIVER_DEVICE_ID_TAG, instance_name);
 
 	h = MsGetDevInfoFromDeviceId(&data, tmp);
@@ -9813,11 +6928,6 @@ bool MsDisableVLanWithoutLock(char *instance_name)
 		return false;
 	}
 
-	if (MsIsNt() == false)
-	{
-		return false;
-	}
-
 	Format(tmp, sizeof(tmp), DRIVER_DEVICE_ID_TAG, instance_name);
 
 	h = MsGetDevInfoFromDeviceId(&data, tmp);
@@ -9846,11 +6956,6 @@ void MsRestartVLanWithoutLock(char *instance_name)
 {
 	// Validate arguments
 	if (instance_name == NULL)
-	{
-		return;
-	}
-
-	if (MsIsNt() == false)
 	{
 		return;
 	}
@@ -9887,11 +6992,6 @@ bool MsIsVLanEnabledWithoutLock(char *instance_name)
 	if (instance_name == NULL)
 	{
 		return false;
-	}
-
-	if (MsIsNt() == false)
-	{
-		return true;
 	}
 
 	Format(tmp, sizeof(tmp), DRIVER_DEVICE_ID_TAG, instance_name);
@@ -10047,11 +7147,6 @@ bool MsStartDriverInstall(char *instance_name, UCHAR *mac_address, char *neo_sys
 	ReplaceStrEx(tmp, size * 2, tmp, "$VER_MINOR$", str_minor, false);
 	ReplaceStrEx(tmp, size * 2, tmp, "$VER_BUILD$", str_build, false);
 
-	if (MsIsVista())
-	{
-		//ReplaceStrEx(tmp, size * 2, tmp, "\"100\"", "\"2000\"", false);
-	}
-
 	io = FileCreateW(dest_inf);
 	if (io == NULL)
 	{
@@ -10112,14 +7207,14 @@ void MsGenMacAddress(UCHAR *mac)
 	now = SystemTime64();
 	Copy(hash_src, &now, sizeof(now));
 
-	Hash(hash, hash_src, sizeof(hash_src), true);
+	Sha0(hash, hash_src, sizeof(hash_src));
 
-	mac[0] = 0x00;
-	mac[1] = 0xAC;
-	mac[2] = hash[0];
-	mac[3] = hash[1];
-	mac[4] = hash[2];
-	mac[5] = hash[3];
+	mac[0] = 0x5E;
+	mac[1] = hash[0];
+	mac[2] = hash[1];
+	mac[3] = hash[2];
+	mac[4] = hash[3];
+	mac[5] = hash[4];
 }
 
 // Finish the driver installation
@@ -10150,36 +7245,25 @@ void MsFinishDriverInstall(char *instance_name, char *neo_sys)
 }
 
 // Get the path to the driver file
-void MsGetDriverPath(char *instance_name, wchar_t *src_inf, wchar_t *src_sys, wchar_t *dest_inf, wchar_t *dest_sys, wchar_t *src_cat, wchar_t *dest_cat, char *neo_sys)
+void MsGetDriverPath(char* instance_name, wchar_t* src_inf, wchar_t* src_sys, wchar_t* dest_inf, wchar_t* dest_sys, wchar_t* src_cat, wchar_t* dest_cat, char* neo_sys)
 {
-	wchar_t *src_filename;
-	wchar_t *src_sys_filename;
+	wchar_t* src_filename;
+	wchar_t* src_sys_filename;
 	// Validate arguments
 	if (instance_name == NULL)
 	{
 		return;
 	}
 
-	src_filename = DRIVER_INF_FILE_NAME;
-	src_sys_filename = DRIVER_SYS_FILE_NAME;
-
-	if (MsIsNt() == false)
+	if (MsIsX64())
 	{
-		src_filename = DRIVER_INF_FILE_NAME_9X;
-		src_sys_filename = DRIVER_SYS_FILE_NAME_9X;
+		src_filename = L"|DriverPackages\\Neo\\x64\\Neo_x64.inf";
+		src_sys_filename = L"|DriverPackages\\Neo\\x64\\Neo_x64.sys";
 	}
-	else if (MsIsIA64() || MsIsX64())
+	else
 	{
-		if (MsIsX64())
-		{
-			src_filename = DRIVER_INF_FILE_NAME_X64;
-			src_sys_filename = DRIVER_SYS_FILE_NAME_X64;
-		}
-		else
-		{
-			src_filename = DRIVER_INF_FILE_NAME_IA64;
-			src_sys_filename = DRIVER_SYS_FILE_NAME_IA64;
-		}
+		src_filename = L"|DriverPackages\\Neo\\x86\\Neo_x86.inf";
+		src_sys_filename = L"|DriverPackages\\Neo\\x86\\Neo_x86.sys";
 	}
 
 	if (MsIsWindows7())
@@ -10187,15 +7271,28 @@ void MsGetDriverPath(char *instance_name, wchar_t *src_inf, wchar_t *src_sys, wc
 		// Use the NDIS 6.2 driver for Windows 7 or later
 		if (MsIsX64())
 		{
-			src_sys_filename = DRIVER_SYS6_FILE_NAME_X64;
-		}
-		else if (MsIsIA64())
-		{
-			src_sys_filename = DRIVER_SYS6_FILE_NAME_IA64;
+			src_filename = L"|DriverPackages\\Neo6\\x64\\Neo6_x64.inf";
+			src_sys_filename = L"|DriverPackages\\Neo6\\x64\\Neo6_x64.sys";
 		}
 		else
 		{
-			src_sys_filename = DRIVER_SYS6_FILE_NAME;
+			src_filename = L"|DriverPackages\\Neo6\\x86\\Neo6_x86.inf";
+			src_sys_filename = L"|DriverPackages\\Neo6\\x86\\Neo6_x86.sys";
+		}
+	}
+
+	if (MsIsInfCatalogRequired())
+	{
+		// Windows 8 or later
+		if (MsIsX64())
+		{
+			src_filename = L"|DriverPackages\\Neo6_Win8\\x64\\Neo6_x64.inf";
+			src_sys_filename = L"|DriverPackages\\Neo6_Win8\\x64\\Neo6_x64.sys";
+		}
+		else
+		{
+			src_filename = L"|DriverPackages\\Neo6_Win8\\x86\\Neo6_x86.inf";
+			src_sys_filename = L"|DriverPackages\\Neo6_Win8\\x86\\Neo6_x86.sys";
 		}
 	}
 
@@ -10203,27 +7300,43 @@ void MsGetDriverPath(char *instance_name, wchar_t *src_inf, wchar_t *src_sys, wc
 	{
 		if (MsIsInfCatalogRequired() == false)
 		{
+			// Windows 7 or before
 			UniStrCpy(src_inf, MAX_PATH, src_filename);
 		}
 		else
 		{
+			// Windows 8.1 or later
 			char tmp[MAX_SIZE];
 
 			MsGetInfCatalogDir(tmp, sizeof(tmp));
 
-			UniFormat(src_inf, MAX_PATH, L"%S\\INF_%S.inf", tmp, instance_name);
+			UniFormat(src_inf, MAX_PATH, L"%S\\Neo6_%S_%S.inf", tmp, (MsIsX64() ? "x64" : "x86"), instance_name);
 		}
 	}
 
 	if (src_sys != NULL)
 	{
 		UniStrCpy(src_sys, MAX_PATH, src_sys_filename);
+
+		if (MsIsWindows10())
+		{
+			UniFormat(src_sys, MAX_PATH, L"|DriverPackages\\Neo6_Win10\\%S\\Neo6_%S_%S.sys",
+				(MsIsX64() ? "x64" : "x86"), (MsIsX64() ? "x64" : "x86"), instance_name);
+		}
 	}
 
 	if (dest_inf != NULL)
 	{
 		char inf_name[MAX_PATH];
-		Format(inf_name, sizeof(inf_name), DRIVER_INSTALL_INF_NAME_TAG, instance_name);
+
+		if (MsIsInfCatalogRequired() == false)
+		{
+			Format(inf_name, sizeof(inf_name), "Neo_%s.inf", instance_name);
+		}
+		else
+		{
+			Format(inf_name, sizeof(inf_name), "Neo6_%s_%s.inf", (MsIsX64() ? "x64" : "x86"), instance_name);
+		}
 		UniFormat(dest_inf, MAX_PATH, L"%s\\%S", ms->MyTempDirW, inf_name);
 	}
 
@@ -10241,7 +7354,24 @@ void MsGetDriverPath(char *instance_name, wchar_t *src_inf, wchar_t *src_sys, wc
 			char tmp[MAX_SIZE];
 
 			MsGetInfCatalogDir(tmp, sizeof(tmp));
-			UniFormat(src_cat, MAX_PATH, L"%S\\inf.cat", tmp);
+
+			if (MsIsWindows8() == false)
+			{
+				// Windows Vista and Windows 7 uses SHA-1 catalog files
+				// (Unused? Never reach here!)
+				UniFormat(src_cat, MAX_PATH, L"%S\\inf.cat", tmp);
+			}
+			else
+			{
+				// Windows 8 or above uses SHA-256 catalog files
+				UniFormat(src_cat, MAX_PATH, L"%S\\inf2.cat", tmp);
+			}
+
+			if (MsIsWindows10())
+			{
+				// Windows 10
+				UniFormat(src_cat, MAX_PATH, L"%S\\Neo6_%S_%S.cat", tmp, (MsIsX64() ? "x64" : "x86"), instance_name);
+			}
 		}
 		else
 		{
@@ -10253,7 +7383,14 @@ void MsGetDriverPath(char *instance_name, wchar_t *src_inf, wchar_t *src_sys, wc
 	{
 		if (MsIsInfCatalogRequired())
 		{
-			UniFormat(dest_cat, MAX_PATH, L"%s\\inf_%S.cat", ms->MyTempDirW, instance_name);
+			if (MsIsWindows10() == false)
+			{
+				UniFormat(dest_cat, MAX_PATH, L"%s\\inf_%S.cat", ms->MyTempDirW, instance_name);
+			}
+			else
+			{
+				UniFormat(dest_cat, MAX_PATH, L"%s\\Neo6_%S_%S.cat", ms->MyTempDirW, (MsIsX64() ? "x64" : "x86"), instance_name);
+			}
 		}
 		else
 		{
@@ -10304,106 +7441,6 @@ bool MsIsVLanExists(char *tag_name, char *instance_name)
 
 	Free(guid);
 	return true;
-}
-
-// Create a temporary file based on the extension
-IO *MsCreateTempFileByExt(char *ext)
-{
-	char *tmp = MsCreateTempFileNameByExt(ext);
-	IO *ret;
-
-	if (tmp == NULL)
-	{
-		return NULL;
-	}
-
-	ret = FileCreate(tmp);
-	Free(tmp);
-
-	return ret;
-}
-
-// Create a temporary file with the specified extension
-char *MsCreateTempFileNameByExt(char *ext)
-{
-	UCHAR rand[2];
-	char *ret = NULL;
-	// Validate arguments
-	if (ext == NULL)
-	{
-		ext = "tmp";
-	}
-	if (ext[0] == '.')
-	{
-		ext++;
-	}
-	if (StrLen(ext) == 0)
-	{
-		ext = "tmp";
-	}
-
-	while (true)
-	{
-		char new_filename[MAX_PATH];
-		char *fullpath;
-		char rand_str[MAX_PATH];
-		IO *io;
-		Rand(rand, sizeof(rand));
-
-		BinToStr(rand_str, sizeof(rand_str), rand, sizeof(rand));
-		Format(new_filename, sizeof(new_filename), "__%s.%s", rand_str, ext);
-
-		fullpath = MsCreateTempFileName(new_filename);
-		io = FileOpen(fullpath, false);
-		if (io == NULL)
-		{
-			ret = fullpath;
-			break;
-		}
-		FileClose(io);
-
-		Free(fullpath);
-	}
-
-	return ret;
-}
-
-// Create a temporary file
-IO *MsCreateTempFile(char *name)
-{
-	IO *ret;
-	char *tmp;
-	// Validate arguments
-	if (name == NULL)
-	{
-		return NULL;
-	}
-
-	tmp = MsCreateTempFileName(name);
-	if (tmp == NULL)
-	{
-		return NULL;
-	}
-
-	ret = FileCreate(tmp);
-	Free(tmp);
-
-	return ret;
-}
-
-// Create a temporary file name
-char *MsCreateTempFileName(char *name)
-{
-	char tmp[MAX_PATH];
-	// Validate arguments
-	if (name == NULL)
-	{
-		return NULL;
-	}
-
-	Format(tmp, sizeof(tmp), "%s\\%s", ms->MyTempDir, name);
-
-	return CopyStr(tmp);
 }
 
 // Delete VPN temporary directories that remain in the system but not used
@@ -10722,12 +7759,6 @@ void MsNormalizeInterfaceDefaultGatewaySettings(char *tag_name, char *instance_n
 
 	Debug("MsNormalizeInterfaceDefaultGatewaySettings()\n");
 
-	if (MsIsVista() == false)
-	{
-		Debug("MsIsVista() == false\n");
-		return;
-	}
-
 	Format(tmp2, sizeof(tmp2), tag_name, instance_name);
 	if_index = Win32GetVLanInterfaceID(tmp2);
 	Debug("if_index=%u\n", if_index);
@@ -10768,9 +7799,7 @@ void MsNormalizeInterfaceDefaultGatewaySettings(char *tag_name, char *instance_n
 				{
 					char *s = LIST_DATA(o, i);
 					char tmp[MAX_SIZE];
-
-					char *cm = NULL;
-					UINT current_metric;
+					UINT current_metric = 0;
 
 					if (o2 != NULL)
 					{
@@ -10816,11 +7845,6 @@ void MsInitNetworkConfig(char *tag_name, char *instance_name, char *connection_t
 	char *config_str;
 	// Validate arguments
 	if (tag_name == NULL || instance_name == NULL || connection_tag_name == NULL)
-	{
-		return;
-	}
-
-	if (MsIsNt() == false)
 	{
 		return;
 	}
@@ -10873,7 +7897,7 @@ void MsSetNetworkConfig(char *tag_name, char *instance_name, char *friendly_name
 	old_name = MsRegReadStr(REG_LOCAL_MACHINE, key, "Name");
 	if (old_name != NULL)
 	{
-		if (MsIsVista())
+		if (true)
 		{
 			char arg[MAX_PATH];
 			char netsh[MAX_PATH];
@@ -10970,16 +7994,9 @@ void MsSetMacAddress(char *tag_name, char *instance_name, char *mac_address)
 	Format(dest_name, sizeof(dest_name), tag_name, instance_name);
 
 	// Enumerate the key
-	if (MsIsNt())
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
-	}
-	else
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"System\\CurrentControlSet\\Services\\Class\\Net");
-	}
+	key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
+
 	if (key_list == NULL)
 	{
 		return;
@@ -10991,18 +8008,9 @@ void MsSetMacAddress(char *tag_name, char *instance_name, char *mac_address)
 		char full_key_name[MAX_SIZE];
 		char *driver_desc;
 
-		if (MsIsNt())
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
-				key_name);
-		}
-		else
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"System\\CurrentControlSet\\Services\\Class\\Net\\%s",
-				key_name);
-		}
+		Format(full_key_name, sizeof(full_key_name),
+			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
+			key_name);
 
 		// Read the DriverDesc
 		driver_desc = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "DriverDesc");
@@ -11044,16 +8052,9 @@ char *MsGetDriverFileName(char *tag_name, char *instance_name)
 	Format(dest_name, sizeof(dest_name), tag_name, instance_name);
 
 	// Enumerate the key
-	if (MsIsNt())
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
-	}
-	else
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"System\\CurrentControlSet\\Services\\Class\\Net");
-	}
+	key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
+
 	if (key_list == NULL)
 	{
 		return NULL;
@@ -11065,18 +8066,9 @@ char *MsGetDriverFileName(char *tag_name, char *instance_name)
 		char full_key_name[MAX_SIZE];
 		char *driver_desc;
 
-		if (MsIsNt())
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
-				key_name);
-		}
-		else
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"System\\CurrentControlSet\\Services\\Class\\Net\\%s",
-				key_name);
-		}
+		Format(full_key_name, sizeof(full_key_name),
+			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
+			key_name);
 
 		// Read the DriverDesc
 		driver_desc = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "DriverDesc");
@@ -11116,16 +8108,9 @@ char *MsGetDriverVersion(char *tag_name, char *instance_name)
 	Format(dest_name, sizeof(dest_name), tag_name, instance_name);
 
 	// Enumerate the key
-	if (MsIsNt())
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
-	}
-	else
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"System\\CurrentControlSet\\Services\\Class\\Net");
-	}
+	key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
+
 	if (key_list == NULL)
 	{
 		return NULL;
@@ -11137,18 +8122,9 @@ char *MsGetDriverVersion(char *tag_name, char *instance_name)
 		char full_key_name[MAX_SIZE];
 		char *driver_desc;
 
-		if (MsIsNt())
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
-				key_name);
-		}
-		else
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"System\\CurrentControlSet\\Services\\Class\\Net\\%s",
-				key_name);
-		}
+		Format(full_key_name, sizeof(full_key_name),
+			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
+			key_name);
 
 		// Read the DriverDesc
 		driver_desc = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "DriverDesc");
@@ -11187,78 +8163,6 @@ char *MsGetDriverVersion(char *tag_name, char *instance_name)
 	return ret;
 }
 
-// Get the registry key of the NETCFG of the virtual LAN card
-char *MsGetNetCfgRegKeyName(char *tag_name, char *instance_name)
-{
-	TOKEN_LIST *key_list;
-	UINT i;
-	char *ret = NULL;
-	char dest_name[MAX_SIZE];
-	// Validate arguments
-	if (tag_name == NULL || instance_name == NULL)
-	{
-		return NULL;
-	}
-
-	// Generate the desired name
-	Format(dest_name, sizeof(dest_name), tag_name, instance_name);
-
-	// Enumerate the key
-	if (MsIsNt())
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
-	}
-	else
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"System\\CurrentControlSet\\Services\\Class\\Net");
-	}
-
-	if (key_list == NULL)
-	{
-		return NULL;
-	}
-
-	for (i = 0;i < key_list->NumTokens;i++)
-	{
-		char *key_name = key_list->Token[i];
-		char full_key_name[MAX_SIZE];
-		char *driver_desc;
-
-		if (MsIsNt())
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
-				key_name);
-		}
-		else
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"System\\CurrentControlSet\\Services\\Class\\Net\\%s",
-				key_name);
-		}
-
-		// Read the DriverDesc
-		driver_desc = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "DriverDesc");
-		if (driver_desc != NULL)
-		{
-			if (StrCmpi(dest_name, driver_desc) == 0)
-			{
-				ret = CopyStr(full_key_name);
-
-				Free(driver_desc);
-				break;
-			}
-			Free(driver_desc);
-		}
-	}
-
-	FreeToken(key_list);
-
-	return ret;
-}
-
 // Get the MAC address
 char *MsGetMacAddress(char *tag_name, char *instance_name)
 {
@@ -11276,16 +8180,8 @@ char *MsGetMacAddress(char *tag_name, char *instance_name)
 	Format(dest_name, sizeof(dest_name), tag_name, instance_name);
 
 	// Enumerate the key
-	if (MsIsNt())
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
-	}
-	else
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"System\\CurrentControlSet\\Services\\Class\\Net");
-	}
+	key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
 
 	if (key_list == NULL)
 	{
@@ -11298,18 +8194,9 @@ char *MsGetMacAddress(char *tag_name, char *instance_name)
 		char full_key_name[MAX_SIZE];
 		char *driver_desc;
 
-		if (MsIsNt())
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
-				key_name);
-		}
-		else
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"System\\CurrentControlSet\\Services\\Class\\Net\\%s",
-				key_name);
-		}
+		Format(full_key_name, sizeof(full_key_name),
+			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
+			key_name);
 
 		// Read the DriverDesc
 		driver_desc = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "DriverDesc");
@@ -11361,16 +8248,8 @@ bool MsCheckVLanDeviceIdFromRootEnum(char *name)
 		return false;
 	}
 
-	if (MsIsNt())
-	{
-		root = "SYSTEM\\CurrentControlSet\\Enum\\Root\\NET";
-		keyname = "HardwareID";
-	}
-	else
-	{
-		root = "Enum\\Root\\Net";
-		keyname = "CompatibleIDs";
-	}
+	root = "SYSTEM\\CurrentControlSet\\Enum\\Root\\NET";
+	keyname = "HardwareID";
 
 	t = MsRegEnumKey(REG_LOCAL_MACHINE, root);
 	if (t == NULL)
@@ -11426,16 +8305,9 @@ char *MsGetNetworkAdapterGuid(char *tag_name, char *instance_name)
 	Format(dest_name, sizeof(dest_name), tag_name, instance_name);
 
 	// Enumerate the key
-	if (MsIsNt())
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
-	}
-	else
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"System\\CurrentControlSet\\Services\\Class\\Net");
-	}
+	key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
+
 	if (key_list == NULL)
 	{
 		return NULL;
@@ -11448,18 +8320,9 @@ char *MsGetNetworkAdapterGuid(char *tag_name, char *instance_name)
 		char *driver_desc;
 		char *device_id;
 
-		if (MsIsNt())
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
-				key_name);
-		}
-		else
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"System\\CurrentControlSet\\Services\\Class\\Net\\%s",
-				key_name);
-		}
+		Format(full_key_name, sizeof(full_key_name),
+			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
+			key_name);
 
 		device_id = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "MatchingDeviceId");
 
@@ -11474,14 +8337,8 @@ char *MsGetNetworkAdapterGuid(char *tag_name, char *instance_name)
 					if (StrCmpi(dest_name, driver_desc) == 0)
 					{
 						// Read the NetCfgInstanceId
-						if (MsIsNt())
-						{
-							ret = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "NetCfgInstanceId");
-						}
-						else
-						{
-							ret = CopyStr("");
-						}
+						ret = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "NetCfgInstanceId");
+
 						Free(driver_desc);
 						Free(device_id);
 						break;
@@ -11571,7 +8428,7 @@ TOKEN_LIST *MsEnumNeoDriverFilenames()
 	for (i = 0;i < neos->NumTokens;i++)
 	{
 		char filename[MAX_PATH];
-		if (MsGetNeoDeiverFilename(filename, sizeof(filename), neos->Token[i]))
+		if (MsGetNeoDriverFilename(filename, sizeof(filename), neos->Token[i]))
 		{
 			Add(o, CopyStr(filename));
 		}
@@ -11586,7 +8443,7 @@ TOKEN_LIST *MsEnumNeoDriverFilenames()
 }
 
 // Get the driver file name of Neo
-bool MsGetNeoDeiverFilename(char *name, UINT size, char *instance_name)
+bool MsGetNeoDriverFilename(char *name, UINT size, char *instance_name)
 {
 	char tmp[MAX_SIZE];
 	char *ret;
@@ -11619,16 +8476,9 @@ TOKEN_LIST *MsEnumNetworkAdaptersNeo()
 	UINT i;
 
 	// Enumerate the key
-	if (MsIsNt())
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
-	}
-	else
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"System\\CurrentControlSet\\Services\\Class\\Net");
-	}
+	key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
+
 	if (key_list == NULL)
 	{
 		return NULL;
@@ -11643,18 +8493,9 @@ TOKEN_LIST *MsEnumNetworkAdaptersNeo()
 		char *driver_desc;
 		char *device_id;
 
-		if (MsIsNt())
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
-				key_name);
-		}
-		else
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"System\\CurrentControlSet\\Services\\Class\\Net\\%s",
-				key_name);
-		}
+		Format(full_key_name, sizeof(full_key_name),
+			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
+			key_name);
 
 		// Read the DriverDesc
 		driver_desc = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "DriverDesc");
@@ -11707,16 +8548,9 @@ TOKEN_LIST *MsEnumNetworkAdapters(char *start_with_name, char *start_with_name_2
 	UINT i;
 
 	// Enumerate the key
-	if (MsIsNt())
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
-	}
-	else
-	{
-		key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
-			"System\\CurrentControlSet\\Services\\Class\\Net");
-	}
+	key_list = MsRegEnumKey(REG_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}");
+
 	if (key_list == NULL)
 	{
 		return NULL;
@@ -11731,18 +8565,9 @@ TOKEN_LIST *MsEnumNetworkAdapters(char *start_with_name, char *start_with_name_2
 		char *driver_desc;
 		char *device_id;
 
-		if (MsIsNt())
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
-				key_name);
-		}
-		else
-		{
-			Format(full_key_name, sizeof(full_key_name),
-				"System\\CurrentControlSet\\Services\\Class\\Net\\%s",
-				key_name);
-		}
+		Format(full_key_name, sizeof(full_key_name),
+			"SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002bE10318}\\%s",
+			key_name);
 
 		// Read the DriverDesc
 		driver_desc = MsRegReadStr(REG_LOCAL_MACHINE, full_key_name, "DriverDesc");
@@ -11813,16 +8638,11 @@ bool MsCheckLogon(wchar_t *username, char *password)
 		return false;
 	}
 
-	if (MsIsNt() == false)
-	{
-		return false;
-	}
-
 	StrToUni(password_unicode, sizeof(password_unicode), password);
 
 	if (GET_KETA(GetOsInfo()->OsType, 100) >= 2)
 	{
-		if (ms->nt->LogonUserW(username, NULL, password_unicode, LOGON32_LOGON_NETWORK, LOGON32_PROVIDER_DEFAULT, &h) == false)
+		if (LogonUserW(username, NULL, password_unicode, LOGON32_LOGON_NETWORK, LOGON32_PROVIDER_DEFAULT, &h) == false)
 		{
 			// Logon failure
 			return false;
@@ -11833,7 +8653,7 @@ bool MsCheckLogon(wchar_t *username, char *password)
 		char username_ansi[MAX_SIZE];
 		UniToStr(username_ansi, sizeof(username_ansi), username);
 
-		if (ms->nt->LogonUserA(username_ansi, NULL, password, LOGON32_LOGON_NETWORK, LOGON32_PROVIDER_DEFAULT, &h) == false)
+		if (LogonUserA(username_ansi, NULL, password, LOGON32_LOGON_NETWORK, LOGON32_PROVIDER_DEFAULT, &h) == false)
 		{
 			// Logon failure
 			return false;
@@ -11841,92 +8661,6 @@ bool MsCheckLogon(wchar_t *username, char *password)
 	}
 
 	CloseHandle(h);
-
-	return true;
-}
-
-// Attempt to logon to the domain
-bool MsIsPasswordEmpty(wchar_t *username)
-{
-	HANDLE h;
-	// Validate arguments
-	if (username == NULL)
-	{
-		return false;
-	}
-
-	if (MsIsNt() == false)
-	{
-		return false;
-	}
-
-	if (GET_KETA(GetOsInfo()->OsType, 100) >= 2)
-	{
-		if (ms->nt->LogonUserW(username, NULL, L"", LOGON32_LOGON_NETWORK, LOGON32_PROVIDER_DEFAULT, &h) == false)
-		{
-			// Logon failure
-			if (GetLastError() == 1327)
-			{
-				// Password is empty
-				return true;
-			}
-			else
-			{
-				// The password is not correct
-				return false;
-			}
-		}
-	}
-	else
-	{
-		char username_ansi[MAX_SIZE];
-		UniToStr(username_ansi, sizeof(username_ansi), username);
-
-		if (ms->nt->LogonUserA(username_ansi, NULL, "", LOGON32_LOGON_NETWORK, LOGON32_PROVIDER_DEFAULT, &h) == false)
-		{
-			// Logon failure
-			if (GetLastError() == 1327)
-			{
-				// Password is empty
-				return true;
-			}
-			else
-			{
-				// The password is not correct
-				return false;
-			}
-		}
-	}
-
-	CloseHandle(h);
-
-	// Since successful logon, the password should be empty
-	return false;
-}
-
-// Execution of shutdown (NT)
-bool MsShutdownEx(bool reboot, bool force, UINT time_limit, char *message)
-{
-	if (MsIsNt() == false)
-	{
-		return MsShutdown(reboot, force);
-	}
-
-	// Get the privilege
-	if (MsEnablePrivilege(SE_SHUTDOWN_NAME, true) == false)
-	{
-		return false;
-	}
-
-	// Execute the shutdown
-	if (ms->nt->InitiateSystemShutdown(NULL, message, time_limit, force, reboot) == false)
-	{
-		MsEnablePrivilege(SE_SHUTDOWN_NAME, false);
-		return false;
-	}
-
-	// Release of privilege
-	MsEnablePrivilege(SE_SHUTDOWN_NAME, false);
 
 	return true;
 }
@@ -11961,7 +8695,6 @@ bool MsShutdown(bool reboot, bool force)
 bool MsEnablePrivilege(char *name, bool enable)
 {
 	HANDLE hToken;
-	NT_API *nt = ms->nt;
 	LUID luid;
 	TOKEN_PRIVILEGES *tp;
 	bool ret;
@@ -11970,19 +8703,15 @@ bool MsEnablePrivilege(char *name, bool enable)
 	{
 		return false;
 	}
-	if (MsIsNt() == false)
-	{
-		return true;
-	}
 
 	// Open the process token
-	if (nt->OpenProcessToken(ms->hCurrentProcess, TOKEN_ADJUST_PRIVILEGES, &hToken) == false)
+	if (OpenProcessToken(ms->hCurrentProcess, TOKEN_ADJUST_PRIVILEGES, &hToken) == false)
 	{
 		return false;
 	}
 
 	// Get a local unique identifier
-	if (nt->LookupPrivilegeValue(NULL, name, &luid) == FALSE)
+	if (LookupPrivilegeValue(NULL, name, &luid) == FALSE)
 	{
 		CloseHandle(hToken);
 		return false;
@@ -11995,7 +8724,7 @@ bool MsEnablePrivilege(char *name, bool enable)
 	Copy(&tp->Privileges[0].Luid, &luid, sizeof(LUID));
 
 	// Manipulate the privilege
-	ret = nt->AdjustTokenPrivileges(hToken, false, tp, sizeof(TOKEN_PRIVILEGES), 0, 0);
+	ret = AdjustTokenPrivileges(hToken, false, tp, sizeof(TOKEN_PRIVILEGES), 0, 0);
 
 	Free(tp);
 	CloseHandle(hToken);
@@ -12003,26 +8732,31 @@ bool MsEnablePrivilege(char *name, bool enable)
 	return ret;
 }
 
-// Get whether the current OS is a NT system
-bool MsIsNt()
+// Get whether the current system is WINE
+bool MsIsWine()
 {
+	bool ret = false;
+
 	if (ms == NULL)
 	{
-		OSVERSIONINFO os;
-		Zero(&os, sizeof(os));
-		os.dwOSVersionInfoSize = sizeof(os);
-		GetVersionEx(&os);
-		if (os.dwPlatformId == VER_PLATFORM_WIN32_NT)
+		HINSTANCE h = LoadLibrary("kernel32.dll");
+
+		if (h != NULL)
 		{
-			return true;
-		}
-		else
-		{
-			return false;
+			if (GetProcAddress(h, "wine_get_unix_file_name") != NULL)
+			{
+				ret = true;
+			}
+
+			FreeLibrary(h);
 		}
 	}
+	else
+	{
+		ret = ms->IsWine;
+	}
 
-	return ms->IsNt;
+	return ret;
 }
 
 // Get whether the current user is an Admin
@@ -12031,449 +8765,10 @@ bool MsIsAdmin()
 	return ms->IsAdmin;
 }
 
-// Load the NT system function
-NT_API *MsLoadNtApiFunctions()
-{
-	NT_API *nt = ZeroMalloc(sizeof(NT_API));
-	OSVERSIONINFO info;
-
-	Zero(&info, sizeof(info));
-	info.dwOSVersionInfoSize = sizeof(info);
-	GetVersionEx(&info);
-
-	nt->hKernel32 = LoadLibrary("kernel32.dll");
-	if (nt->hKernel32 == NULL)
-	{
-		Free(nt);
-		return NULL;
-	}
-
-	nt->hAdvapi32 = LoadLibrary("advapi32.dll");
-	if (nt->hAdvapi32 == NULL)
-	{
-		Free(nt);
-		return NULL;
-	}
-
-	nt->hShell32 = LoadLibrary("shell32.dll");
-	if (nt->hShell32 == NULL)
-	{
-		FreeLibrary(nt->hAdvapi32);
-		Free(nt);
-		return NULL;
-	}
-
-	nt->hPsApi = LoadLibrary("psapi.dll");
-
-	if (info.dwMajorVersion >= 5)
-	{
-		nt->hNewDev = LoadLibrary("newdev.dll");
-		if (nt->hNewDev == NULL)
-		{
-			FreeLibrary(nt->hShell32);
-			FreeLibrary(nt->hAdvapi32);
-			Free(nt);
-			return NULL;
-		}
-
-		nt->hSetupApi = LoadLibrary("setupapi.dll");
-	}
-
-	nt->hSecur32 = LoadLibrary("secur32.dll");
-
-	nt->hUser32 = LoadLibrary("user32.dll");
-
-	nt->hDbgHelp = LoadLibrary("dbghelp.dll");
-
-	nt->hWcmapi = LoadLibrary("wcmapi.dll");
-
-	nt->hDwmapi = LoadLibrary("dwmapi.dll");
-
-	// Read the function
-	nt->GetComputerNameExW =
-		(BOOL (__stdcall *)(COMPUTER_NAME_FORMAT,LPWSTR,LPDWORD))
-		GetProcAddress(nt->hKernel32, "GetComputerNameExW");
-
-	nt->IsWow64Process =
-		(BOOL (__stdcall *)(HANDLE,BOOL *))
-		GetProcAddress(nt->hKernel32, "IsWow64Process");
-
-	nt->GetFileInformationByHandle =
-		(BOOL (__stdcall *)(HANDLE,LPBY_HANDLE_FILE_INFORMATION))
-		GetProcAddress(nt->hKernel32, "GetFileInformationByHandle");
-
-	nt->GetProcessHeap =
-		(HANDLE (__stdcall *)())
-		GetProcAddress(nt->hKernel32, "GetProcessHeap");
-
-	nt->SetProcessShutdownParameters =
-		(BOOL (__stdcall *)(DWORD,DWORD))
-		GetProcAddress(nt->hKernel32, "SetProcessShutdownParameters");
-
-	nt->GetNativeSystemInfo =
-		(void (__stdcall *)(SYSTEM_INFO *))
-		GetProcAddress(nt->hKernel32, "GetNativeSystemInfo");
-
-	nt->AdjustTokenPrivileges =
-		(BOOL (__stdcall *)(HANDLE,BOOL,PTOKEN_PRIVILEGES,DWORD,PTOKEN_PRIVILEGES,PDWORD))
-		GetProcAddress(nt->hAdvapi32, "AdjustTokenPrivileges");
-
-	nt->LookupPrivilegeValue =
-		(BOOL (__stdcall *)(char *,char *,PLUID))
-		GetProcAddress(nt->hAdvapi32, "LookupPrivilegeValueA");
-
-	nt->OpenProcessToken =
-		(BOOL (__stdcall *)(HANDLE,DWORD,PHANDLE))
-		GetProcAddress(nt->hAdvapi32, "OpenProcessToken");
-
-	nt->InitiateSystemShutdown =
-		(BOOL (__stdcall *)(LPTSTR,LPTSTR,DWORD,BOOL,BOOL))
-		GetProcAddress(nt->hAdvapi32, "InitiateSystemShutdownA");
-
-	nt->LogonUserW =
-		(BOOL (__stdcall *)(wchar_t *,wchar_t *,wchar_t *,DWORD,DWORD,HANDLE *))
-		GetProcAddress(nt->hAdvapi32, "LogonUserW");
-
-	nt->LogonUserA =
-		(BOOL (__stdcall *)(char *,char *,char *,DWORD,DWORD,HANDLE * ))
-		GetProcAddress(nt->hAdvapi32, "LogonUserA");
-
-	nt->DuplicateTokenEx =
-		(BOOL (__stdcall *)(HANDLE,DWORD,SECURITY_ATTRIBUTES *,SECURITY_IMPERSONATION_LEVEL,TOKEN_TYPE,HANDLE *))
-		GetProcAddress(nt->hAdvapi32, "DuplicateTokenEx");
-
-	nt->ConvertStringSidToSidA =
-		(BOOL (__stdcall *)(LPCSTR,PSID *))
-		GetProcAddress(nt->hAdvapi32, "ConvertStringSidToSidA");
-
-	nt->GetTokenInformation =
-		(BOOL (__stdcall *)(HANDLE,TOKEN_INFORMATION_CLASS,void *,DWORD,PDWORD))
-		GetProcAddress(nt->hAdvapi32, "GetTokenInformation");
-
-	nt->SetTokenInformation =
-		(BOOL (__stdcall *)(HANDLE,TOKEN_INFORMATION_CLASS,void *,DWORD))
-		GetProcAddress(nt->hAdvapi32, "SetTokenInformation");
-
-	nt->CreateProcessAsUserA =
-		(BOOL (__stdcall *)(HANDLE,LPCSTR,LPSTR,LPSECURITY_ATTRIBUTES,LPSECURITY_ATTRIBUTES,BOOL,DWORD,void *,LPCSTR,LPSTARTUPINFOA,LPPROCESS_INFORMATION))
-		GetProcAddress(nt->hAdvapi32, "CreateProcessAsUserA");
-
-	nt->CreateProcessAsUserW =
-		(BOOL (__stdcall *)(HANDLE,LPCWSTR,LPWSTR,LPSECURITY_ATTRIBUTES,LPSECURITY_ATTRIBUTES,BOOL,DWORD,void *,LPCWSTR,LPSTARTUPINFOW,LPPROCESS_INFORMATION))
-		GetProcAddress(nt->hAdvapi32, "CreateProcessAsUserW");
-
-	nt->LookupAccountSidA =
-		(BOOL (__stdcall *)(LPCSTR,PSID,LPSTR,LPDWORD,LPSTR,LPDWORD,PSID_NAME_USE))
-		GetProcAddress(nt->hAdvapi32, "LookupAccountSidA");
-
-	nt->LookupAccountNameA =
-		(BOOL (__stdcall *)(LPCSTR,LPCSTR,PSID,LPDWORD,LPSTR,LPDWORD,PSID_NAME_USE))
-		GetProcAddress(nt->hAdvapi32, "LookupAccountNameA");
-
-	nt->SetNamedSecurityInfoW =
-		(DWORD (__stdcall *)(LPWSTR,UINT,SECURITY_INFORMATION,PSID,PSID,PACL,PACL))
-		GetProcAddress(nt->hAdvapi32, "SetNamedSecurityInfoW");
-
-	nt->AddAccessAllowedAceEx =
-		(BOOL (__stdcall *)(PACL,DWORD,DWORD,DWORD,PSID))
-		GetProcAddress(nt->hAdvapi32, "AddAccessAllowedAceEx");
-
-	nt->QueryFullProcessImageNameA =
-		(BOOL (__stdcall *)(HANDLE,DWORD,LPSTR,PDWORD))
-		GetProcAddress(nt->hKernel32, "QueryFullProcessImageNameA");
-
-	nt->QueryFullProcessImageNameW =
-		(BOOL (__stdcall *)(HANDLE,DWORD,LPWSTR,PDWORD))
-		GetProcAddress(nt->hKernel32, "QueryFullProcessImageNameW");
-
-	if (info.dwMajorVersion >= 5)
-	{
-		nt->UpdateDriverForPlugAndPlayDevicesW =
-			(BOOL (__stdcall *)(HWND,wchar_t *,wchar_t *,UINT,BOOL *))
-			GetProcAddress(nt->hNewDev, "UpdateDriverForPlugAndPlayDevicesW");
-
-		nt->CM_Get_Device_ID_ExA =
-			(UINT (__stdcall *)(DWORD,char *,UINT,UINT,HANDLE))
-			GetProcAddress(nt->hSetupApi, "CM_Get_Device_ID_ExA");
-
-		nt->CM_Get_DevNode_Status_Ex =
-			(UINT (__stdcall *)(UINT *,UINT *,DWORD,UINT,HANDLE))
-			GetProcAddress(nt->hSetupApi, "CM_Get_DevNode_Status_Ex");
-	}
-
-	nt->hWtsApi32 = LoadLibrary("wtsapi32.dll");
-	if (nt->hWtsApi32 != NULL)
-	{
-		// Terminal Services related API
-		nt->WTSQuerySessionInformation =
-			(UINT (__stdcall *)(HANDLE,DWORD,WTS_INFO_CLASS,wchar_t *,DWORD *))
-			GetProcAddress(nt->hWtsApi32, "WTSQuerySessionInformationW");
-		nt->WTSFreeMemory =
-			(void (__stdcall *)(void *))
-			GetProcAddress(nt->hWtsApi32, "WTSFreeMemory");
-		nt->WTSDisconnectSession =
-			(BOOL (__stdcall *)(HANDLE,DWORD,BOOL))
-			GetProcAddress(nt->hWtsApi32, "WTSDisconnectSession");
-		nt->WTSEnumerateSessionsA =
-			(BOOL (__stdcall *)(HANDLE,DWORD,DWORD,PWTS_SESSION_INFOA *,DWORD *))
-			GetProcAddress(nt->hWtsApi32, "WTSEnumerateSessionsA");
-	}
-
-	// Service related API
-	nt->OpenSCManager =
-		(SC_HANDLE (__stdcall *)(LPCTSTR,LPCTSTR,DWORD))
-		GetProcAddress(nt->hAdvapi32, "OpenSCManagerA");
-	nt->CreateServiceA =
-		(SC_HANDLE (__stdcall *)(SC_HANDLE,LPCTSTR,LPCTSTR,DWORD,DWORD,DWORD,DWORD,LPCTSTR,LPCTSTR,LPDWORD,LPCTSTR,LPCTSTR,LPCTSTR))
-		GetProcAddress(nt->hAdvapi32, "CreateServiceA");
-	nt->CreateServiceW =
-		(SC_HANDLE (__stdcall *)(SC_HANDLE,LPCWSTR,LPCWSTR,DWORD,DWORD,DWORD,DWORD,LPCWSTR,LPCWSTR,LPDWORD,LPCWSTR,LPCWSTR,LPCWSTR))
-		GetProcAddress(nt->hAdvapi32, "CreateServiceW");
-	nt->ChangeServiceConfig2 =
-		(BOOL (__stdcall *)(SC_HANDLE,DWORD,LPVOID))
-		GetProcAddress(nt->hAdvapi32, "ChangeServiceConfig2W");
-	nt->CloseServiceHandle =
-		(BOOL (__stdcall *)(SC_HANDLE))
-		GetProcAddress(nt->hAdvapi32, "CloseServiceHandle");
-	nt->OpenService =
-		(SC_HANDLE (__stdcall *)(SC_HANDLE,LPCTSTR,DWORD))
-		GetProcAddress(nt->hAdvapi32, "OpenServiceA");
-	nt->QueryServiceStatus =
-		(BOOL (__stdcall *)(SC_HANDLE,LPSERVICE_STATUS))
-		GetProcAddress(nt->hAdvapi32, "QueryServiceStatus");
-	nt->StartService =
-		(BOOL (__stdcall *)(SC_HANDLE,DWORD,LPCTSTR))
-		GetProcAddress(nt->hAdvapi32, "StartServiceA");
-	nt->ControlService =
-		(BOOL (__stdcall *)(SC_HANDLE,DWORD,LPSERVICE_STATUS))
-		GetProcAddress(nt->hAdvapi32, "ControlService");
-	nt->SetServiceStatus =
-		(BOOL (__stdcall *)(SERVICE_STATUS_HANDLE,LPSERVICE_STATUS))
-		GetProcAddress(nt->hAdvapi32, "SetServiceStatus");
-	nt->RegisterServiceCtrlHandler =
-		(SERVICE_STATUS_HANDLE (__stdcall *)(LPCTSTR,LPHANDLER_FUNCTION))
-		GetProcAddress(nt->hAdvapi32, "RegisterServiceCtrlHandlerW");
-	nt->StartServiceCtrlDispatcher =
-		(BOOL (__stdcall *)(const LPSERVICE_TABLE_ENTRY))
-		GetProcAddress(nt->hAdvapi32, "StartServiceCtrlDispatcherW");
-	nt->DeleteService =
-		(BOOL (__stdcall *)(SC_HANDLE))
-		GetProcAddress(nt->hAdvapi32, "DeleteService");
-	nt->RegisterEventSourceW =
-		(HANDLE (__stdcall *)(LPCWSTR,LPCWSTR))
-		GetProcAddress(nt->hAdvapi32, "RegisterEventSourceW");
-	nt->ReportEventW =
-		(BOOL (__stdcall *)(HANDLE,WORD,WORD,DWORD,PSID,WORD,DWORD,LPCWSTR *,LPVOID))
-		GetProcAddress(nt->hAdvapi32, "ReportEventW");
-	nt->DeregisterEventSource =
-		(BOOL (__stdcall *)(HANDLE))
-		GetProcAddress(nt->hAdvapi32, "DeregisterEventSource");
-	nt->Wow64DisableWow64FsRedirection =
-		(BOOL (__stdcall *)(void **))
-		GetProcAddress(nt->hKernel32, "Wow64DisableWow64FsRedirection");
-	nt->Wow64EnableWow64FsRedirection =
-		(BOOLEAN (__stdcall *)(BOOLEAN))
-		GetProcAddress(nt->hKernel32, "Wow64EnableWow64FsRedirection");
-	nt->Wow64RevertWow64FsRedirection =
-		(BOOL (__stdcall *)(void *))
-		GetProcAddress(nt->hKernel32, "Wow64RevertWow64FsRedirection");
-
-	if (nt->hPsApi != NULL)
-	{
-		// Process related API
-		nt->EnumProcesses =
-			(BOOL (__stdcall *)(DWORD *,DWORD,DWORD *))
-			GetProcAddress(nt->hPsApi, "EnumProcesses");
-
-		nt->EnumProcessModules =
-			(BOOL (__stdcall *)(HANDLE,HMODULE * ,DWORD,DWORD *))
-			GetProcAddress(nt->hPsApi, "EnumProcessModules");
-
-		nt->GetModuleFileNameExA =
-			(DWORD (__stdcall *)(HANDLE,HMODULE,LPSTR,DWORD))
-			GetProcAddress(nt->hPsApi, "GetModuleFileNameExA");
-
-		nt->GetModuleFileNameExW =
-			(DWORD (__stdcall *)(HANDLE,HMODULE,LPWSTR,DWORD))
-			GetProcAddress(nt->hPsApi, "GetModuleFileNameExW");
-
-		nt->GetProcessImageFileNameA =
-			(DWORD (__stdcall *)(HANDLE,LPSTR,DWORD))
-			GetProcAddress(nt->hPsApi, "GetProcessImageFileNameA");
-
-		nt->GetProcessImageFileNameW =
-			(DWORD (__stdcall *)(HANDLE,LPWSTR,DWORD))
-			GetProcAddress(nt->hPsApi, "GetProcessImageFileNameW");
-	}
-
-	// Registry related API
-	nt->RegDeleteKeyExA =
-		(LONG (__stdcall *)(HKEY,LPCTSTR,REGSAM,DWORD))
-		GetProcAddress(nt->hAdvapi32, "RegDeleteKeyExA");
-
-	// Security related API
-	if (nt->hSecur32 != NULL)
-	{
-		nt->GetUserNameExA =
-			(BOOL (__stdcall *)(EXTENDED_NAME_FORMAT,LPSTR,PULONG))
-			GetProcAddress(nt->hSecur32, "GetUserNameExA");
-
-		nt->GetUserNameExW =
-			(BOOL (__stdcall *)(EXTENDED_NAME_FORMAT,LPWSTR,PULONG))
-			GetProcAddress(nt->hSecur32, "GetUserNameExW");
-
-		nt->LsaConnectUntrusted =
-			(NTSTATUS (__stdcall *)(PHANDLE))
-			GetProcAddress(nt->hSecur32, "LsaConnectUntrusted");
-
-		nt->LsaLookupAuthenticationPackage =
-			(NTSTATUS (__stdcall *)(HANDLE,PLSA_STRING,PULONG))
-			GetProcAddress(nt->hSecur32, "LsaLookupAuthenticationPackage");
-
-		nt->LsaLogonUser =
-			(NTSTATUS (__stdcall *)(HANDLE,PLSA_STRING,SECURITY_LOGON_TYPE,ULONG,PVOID,ULONG,PTOKEN_GROUPS,PTOKEN_SOURCE,PVOID,PULONG,PLUID,PHANDLE,PQUOTA_LIMITS,PNTSTATUS))
-			GetProcAddress(nt->hSecur32, "LsaLogonUser");
-
-		nt->LsaDeregisterLogonProcess =
-			(NTSTATUS (__stdcall *)(HANDLE))
-			GetProcAddress(nt->hSecur32, "LsaDeregisterLogonProcess");
-
-		nt->LsaFreeReturnBuffer =
-			(NTSTATUS (__stdcall *)(PVOID))
-			GetProcAddress(nt->hSecur32, "LsaFreeReturnBuffer");
-	}
-
-	// WCM related API of Windows 8
-	if (nt->hWcmapi != NULL)
-	{
-		nt->WcmQueryProperty =
-			(DWORD (__stdcall *)(const GUID *,LPCWSTR,MS_WCM_PROPERTY,PVOID,PDWORD,PBYTE *))
-			GetProcAddress(nt->hWcmapi, "WcmQueryProperty");
-
-		nt->WcmSetProperty =
-			(DWORD (__stdcall *)(const GUID *,LPCWSTR,MS_WCM_PROPERTY,PVOID,DWORD,const BYTE *))
-			GetProcAddress(nt->hWcmapi, "WcmSetProperty");
-
-		nt->WcmFreeMemory =
-			(void (__stdcall *)(PVOID))
-			GetProcAddress(nt->hWcmapi, "WcmFreeMemory");
-
-		nt->WcmGetProfileList =
-			(DWORD (__stdcall *)(PVOID,MS_WCM_PROFILE_INFO_LIST **))
-			GetProcAddress(nt->hWcmapi, "WcmGetProfileList");
-	}
-
-	nt->AllocateLocallyUniqueId =
-		(BOOL (__stdcall *)(PLUID))
-		GetProcAddress(nt->hAdvapi32, "AllocateLocallyUniqueId");
-
-	// Desktop related API
-	if (nt->hUser32 != NULL)
-	{
-		nt->SwitchDesktop =
-			(BOOL (__stdcall *)(HDESK))
-			GetProcAddress(nt->hUser32, "SwitchDesktop");
-		nt->OpenDesktopA =
-			(HDESK (__stdcall *)(LPTSTR,DWORD,BOOL,ACCESS_MASK))
-			GetProcAddress(nt->hUser32, "OpenDesktopA");
-		nt->CloseDesktop =
-			(BOOL (__stdcall *)(HDESK))
-			GetProcAddress(nt->hUser32, "CloseDesktop");
-	}
-
-	// DWM API
-	if (nt->hDwmapi)
-	{
-		nt->DwmIsCompositionEnabled =
-			(HRESULT (__stdcall *)(BOOL *))
-			GetProcAddress(nt->hDwmapi, "DwmIsCompositionEnabled");
-	}
-
-	// Debug related API
-	if (nt->hDbgHelp != NULL)
-	{
-		nt->MiniDumpWriteDump =
-			(BOOL (__stdcall *)(HANDLE,DWORD,HANDLE,MINIDUMP_TYPE,PMINIDUMP_EXCEPTION_INFORMATION,PMINIDUMP_USER_STREAM_INFORMATION,PMINIDUMP_CALLBACK_INFORMATION))
-			GetProcAddress(nt->hDbgHelp, "MiniDumpWriteDump");
-	}
-
-	return nt;
-}
-
-// Release of NT system function
-void MsFreeNtApiFunctions(NT_API *nt)
-{
-	// Validate arguments
-	if (nt == NULL)
-	{
-		return;
-	}
-
-	if (nt->hSecur32 != NULL)
-	{
-		FreeLibrary(nt->hSecur32);
-	}
-
-	if (nt->hNewDev != NULL)
-	{
-		FreeLibrary(nt->hSetupApi);
-		FreeLibrary(nt->hNewDev);
-	}
-
-	FreeLibrary(nt->hAdvapi32);
-
-	FreeLibrary(nt->hShell32);
-
-	if (nt->hWtsApi32 != NULL)
-	{
-		FreeLibrary(nt->hWtsApi32);
-	}
-
-	if (nt->hPsApi != NULL)
-	{
-		FreeLibrary(nt->hPsApi);
-	}
-
-	if (nt->hUser32 != NULL)
-	{
-		FreeLibrary(nt->hUser32);
-	}
-
-	if (nt->hDbgHelp != NULL)
-	{
-		FreeLibrary(nt->hDbgHelp);
-	}
-
-	if (nt->hWcmapi != NULL)
-	{
-		FreeLibrary(nt->hWcmapi);
-	}
-
-	if (nt->hDwmapi != NULL)
-	{
-		FreeLibrary(nt->hDwmapi);
-	}
-
-	FreeLibrary(nt->hKernel32);
-
-	Free(nt);
-}
-
 // Get whether the screen color is like to Aero of Windows Vista or later
 bool MsIsAeroColor()
 {
-	UINT r;
-	if (MsIsNt() == false)
-	{
-		return false;
-	}
-
-	if (MsIsVista() == false)
-	{
-		return false;
-	}
-
-	r = GetSysColor(COLOR_MENU);
+	UINT r = GetSysColor(COLOR_MENU);
 	if (r == 0xFFFFFF || r == 0xF0F0F0 || r >= 0xF00000)
 	{
 		return true;
@@ -12490,20 +8785,8 @@ bool MsIsAeroColor()
 // Get whether Aero is enabled
 bool MsIsAeroEnabled()
 {
-	bool ret;
-	if (MsIsNt() == false)
-	{
-		return false;
-	}
-
-	if (ms->nt->DwmIsCompositionEnabled == NULL)
-	{
-		return false;
-	}
-
-	ret = false;
-
-	if (ms->nt->DwmIsCompositionEnabled(&ret) != S_OK)
+	BOOL ret = false;
+	if (DwmIsCompositionEnabled(&ret) != S_OK)
 	{
 		return false;
 	}
@@ -12512,11 +8795,7 @@ bool MsIsAeroEnabled()
 }
 
 // Generate an access mask to force accessing to the 32 bit registry key for 64 bit application
-DWORD MsRegAccessMaskFor64Bit(bool force32bit)
-{
-	return MsRegAccessMaskFor64BitEx(force32bit, false);
-}
-DWORD MsRegAccessMaskFor64BitEx(bool force32bit, bool force64bit)
+UINT MsRegAccessMaskFor64BitEx(bool force32bit, bool force64bit)
 {
 	if (MsIs64BitWindows() == false)
 	{
@@ -12532,6 +8811,47 @@ DWORD MsRegAccessMaskFor64BitEx(bool force32bit, bool force64bit)
 	}
 
 	return 0;
+}
+
+// Load the hive
+bool MsRegLoadHive(UINT root, wchar_t *keyname, wchar_t *filename)
+{
+	LONG ret;
+	if (keyname == NULL || filename == NULL)
+	{
+		WHERE;
+		return false;
+	}
+	ret = RegLoadKeyW(MsGetRootKeyFromInt(root), keyname, filename);
+
+	if (ret != ERROR_SUCCESS)
+	{
+		Debug("RegLoadKeyW: %S %S %u\n", keyname, filename, GetLastError());
+		return false;
+	}
+	WHERE;
+
+	return true;
+}
+
+// Unload the hive
+bool MsRegUnloadHive(UINT root, wchar_t *keyname)
+{
+	LONG ret;
+	if (keyname == NULL)
+	{
+		return false;
+	}
+
+	ret = RegUnLoadKeyW(MsGetRootKeyFromInt(root), keyname);
+
+	if (ret != ERROR_SUCCESS)
+	{
+		Debug("RegUnLoadKeyW: %u\n", GetLastError());
+		return false;
+	}
+
+	return true;
 }
 
 // Delete the value
@@ -12589,19 +8909,9 @@ bool MsRegDeleteKeyEx2(UINT root, char *keyname, bool force32bit, bool force64bi
 		return false;
 	}
 
-	if (MsIsNt() && ms->nt->RegDeleteKeyExA != NULL)
+	if (RegDeleteKeyExA(MsGetRootKeyFromInt(root), keyname, MsRegAccessMaskFor64BitEx(force32bit, force64bit), 0) != ERROR_SUCCESS)
 	{
-		if (ms->nt->RegDeleteKeyExA(MsGetRootKeyFromInt(root), keyname, MsRegAccessMaskFor64BitEx(force32bit, force64bit), 0) != ERROR_SUCCESS)
-		{
-			return false;
-		}
-	}
-	else
-	{
-		if (RegDeleteKey(MsGetRootKeyFromInt(root), keyname) != ERROR_SUCCESS)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	return true;
@@ -12641,7 +8951,7 @@ TOKEN_LIST *MsRegEnumValueEx2(UINT root, char *keyname, bool force32bit, bool fo
 	{
 		char tmp[MAX_SIZE];
 		UINT ret;
-		UINT size = sizeof(tmp);
+		DWORD size = sizeof(tmp);
 
 		Zero(tmp, sizeof(tmp));
 		ret = RegEnumValue(h, i, tmp, &size, NULL, NULL, NULL, NULL);
@@ -12711,7 +9021,7 @@ TOKEN_LIST *MsRegEnumKeyEx2(UINT root, char *keyname, bool force32bit, bool forc
 	{
 		char tmp[MAX_SIZE];
 		UINT ret;
-		UINT size = sizeof(tmp);
+		DWORD size = sizeof(tmp);
 		FILETIME ft;
 
 		Zero(tmp, sizeof(tmp));
@@ -12870,14 +9180,6 @@ bool MsRegWriteStrEx2W(UINT root, char *keyname, char *valuename, wchar_t *str, 
 }
 
 // Set the value
-bool MsRegWriteValue(UINT root, char *keyname, char *valuename, UINT type, void *data, UINT size)
-{
-	return MsRegWriteValueEx(root, keyname, valuename, type, data, size, false);
-}
-bool MsRegWriteValueEx(UINT root, char *keyname, char *valuename, UINT type, void *data, UINT size, bool force32bit)
-{
-	return MsRegWriteValueEx2(root, keyname, valuename, type, data, size, force32bit, false);
-}
 bool MsRegWriteValueEx2(UINT root, char *keyname, char *valuename, UINT type, void *data, UINT size, bool force32bit, bool force64bit)
 {
 	HKEY h;
@@ -12907,14 +9209,6 @@ bool MsRegWriteValueEx2(UINT root, char *keyname, char *valuename, UINT type, vo
 	RegCloseKey(h);
 
 	return true;
-}
-bool MsRegWriteValueW(UINT root, char *keyname, char *valuename, UINT type, void *data, UINT size)
-{
-	return MsRegWriteValueExW(root, keyname, valuename, type, data, size, false);
-}
-bool MsRegWriteValueExW(UINT root, char *keyname, char *valuename, UINT type, void *data, UINT size, bool force32bit)
-{
-	return MsRegWriteValueEx2W(root, keyname, valuename, type, data, size, force32bit, false);
 }
 bool MsRegWriteValueEx2W(UINT root, char *keyname, char *valuename, UINT type, void *data, UINT size, bool force32bit, bool force64bit)
 {
@@ -12988,7 +9282,7 @@ BUF *MsRegReadBinEx(UINT root, char *keyname, char *valuename, bool force32bit)
 BUF *MsRegReadBinEx2(UINT root, char *keyname, char *valuename, bool force32bit, bool force64bit)
 {
 	char *ret;
-	UINT type, size;
+	DWORD type, size;
 	BUF *b;
 	// Validate arguments
 	if (keyname == NULL || valuename == NULL)
@@ -12997,7 +9291,7 @@ BUF *MsRegReadBinEx2(UINT root, char *keyname, char *valuename, bool force32bit,
 	}
 
 	// Read the value
-	if (MsRegReadValueEx2(root, keyname, valuename, &ret, &type, &size, force32bit, force64bit) == false)
+	if (MsRegReadValueEx2(root, keyname, valuename, (void **)&ret, &type, &size, force32bit, force64bit) == false)
 	{
 		return 0;
 	}
@@ -13024,7 +9318,7 @@ UINT MsRegReadIntEx(UINT root, char *keyname, char *valuename, bool force32bit)
 UINT MsRegReadIntEx2(UINT root, char *keyname, char *valuename, bool force32bit, bool force64bit)
 {
 	char *ret;
-	UINT type, size;
+	DWORD type, size;
 	UINT value;
 	// Validate arguments
 	if (keyname == NULL || valuename == NULL)
@@ -13033,7 +9327,7 @@ UINT MsRegReadIntEx2(UINT root, char *keyname, char *valuename, bool force32bit,
 	}
 
 	// Read the value
-	if (MsRegReadValueEx2(root, keyname, valuename, &ret, &type, &size, force32bit, force64bit) == false)
+	if (MsRegReadValueEx2(root, keyname, valuename, (void **)&ret, &type, &size, force32bit, force64bit) == false)
 	{
 		return 0;
 	}
@@ -13093,7 +9387,7 @@ LIST *MsRegReadStrListEx2(UINT root, char *keyname, char *valuename, bool force3
 {
 	LIST *o;
 	char *ret;
-	UINT type, size;
+	DWORD type, size;
 	// Validate arguments
 	if (keyname == NULL || valuename == NULL)
 	{
@@ -13101,7 +9395,7 @@ LIST *MsRegReadStrListEx2(UINT root, char *keyname, char *valuename, bool force3
 	}
 
 	// Read the value
-	if (MsRegReadValueEx2(root, keyname, valuename, &ret, &type, &size, force32bit, force64bit) == false)
+	if (MsRegReadValueEx2(root, keyname, valuename, (void **)&ret, &type, &size, force32bit, force64bit) == false)
 	{
 		return NULL;
 	}
@@ -13148,7 +9442,7 @@ char *MsRegReadStrEx(UINT root, char *keyname, char *valuename, bool force32bit)
 char *MsRegReadStrEx2(UINT root, char *keyname, char *valuename, bool force32bit, bool force64bit)
 {
 	char *ret;
-	UINT type, size;
+	DWORD type, size;
 	// Validate arguments
 	if (keyname == NULL || valuename == NULL)
 	{
@@ -13156,7 +9450,7 @@ char *MsRegReadStrEx2(UINT root, char *keyname, char *valuename, bool force32bit
 	}
 
 	// Read the value
-	if (MsRegReadValueEx2(root, keyname, valuename, &ret, &type, &size, force32bit, force64bit) == false)
+	if (MsRegReadValueEx2(root, keyname, valuename, (void **)&ret, &type, &size, force32bit, force64bit) == false)
 	{
 		return NULL;
 	}
@@ -13212,7 +9506,7 @@ wchar_t *MsRegReadStrExW(UINT root, char *keyname, char *valuename, bool force32
 wchar_t *MsRegReadStrEx2W(UINT root, char *keyname, char *valuename, bool force32bit, bool force64bit)
 {
 	wchar_t *ret;
-	UINT type, size;
+	DWORD type, size;
 	// Validate arguments
 	if (keyname == NULL || valuename == NULL)
 	{
@@ -13220,7 +9514,7 @@ wchar_t *MsRegReadStrEx2W(UINT root, char *keyname, char *valuename, bool force3
 	}
 
 	// Read the value
-	if (MsRegReadValueEx2W(root, keyname, valuename, &ret, &type, &size, force32bit, force64bit) == false)
+	if (MsRegReadValueEx2W(root, keyname, valuename, (void **)&ret, &type, &size, force32bit, force64bit) == false)
 	{
 		return NULL;
 	}
@@ -13245,15 +9539,7 @@ wchar_t *MsRegReadStrEx2W(UINT root, char *keyname, char *valuename, bool force3
 }
 
 // Read the value
-bool MsRegReadValue(UINT root, char *keyname, char *valuename, void **data, UINT *type, UINT *size)
-{
-	return MsRegReadValueEx(root, keyname, valuename, data, type, size, false);
-}
-bool MsRegReadValueEx(UINT root, char *keyname, char *valuename, void **data, UINT *type, UINT *size, bool force32bit)
-{
-	return MsRegReadValueEx2(root, keyname, valuename, data, type, size, force32bit, false);
-}
-bool MsRegReadValueEx2(UINT root, char *keyname, char *valuename, void **data, UINT *type, UINT *size, bool force32bit, bool force64bit)
+bool MsRegReadValueEx2(UINT root, char *keyname, char *valuename, void **data, DWORD *type, DWORD *size, bool force32bit, bool force64bit)
 {
 	HKEY h;
 	UINT ret;
@@ -13306,15 +9592,7 @@ bool MsRegReadValueEx2(UINT root, char *keyname, char *valuename, void **data, U
 
 	return true;
 }
-bool MsRegReadValueW(UINT root, char *keyname, char *valuename, void **data, UINT *type, UINT *size)
-{
-	return MsRegReadValueExW(root, keyname, valuename, data, type, size, false);
-}
-bool MsRegReadValueExW(UINT root, char *keyname, char *valuename, void **data, UINT *type, UINT *size, bool force32bit)
-{
-	return MsRegReadValueEx2W(root, keyname, valuename, data, type, size, force32bit, false);
-}
-bool MsRegReadValueEx2W(UINT root, char *keyname, char *valuename, void **data, UINT *type, UINT *size, bool force32bit, bool force64bit)
+bool MsRegReadValueEx2W(UINT root, char *keyname, char *valuename, void **data, DWORD *type, DWORD *size, bool force32bit, bool force64bit)
 {
 	HKEY h;
 	UINT ret;
@@ -13331,7 +9609,7 @@ bool MsRegReadValueEx2W(UINT root, char *keyname, char *valuename, void **data, 
 	{
 		bool ret;
 		void *data_a = NULL;
-		UINT type_a = 0, size_a = 0;
+		DWORD type_a = 0, size_a = 0;
 
 		ret = MsRegReadValueEx2(root, keyname, valuename, &data_a, &type_a, &size_a, force32bit, force64bit);
 
@@ -13405,127 +9683,6 @@ bool MsRegReadValueEx2W(UINT root, char *keyname, char *valuename, void **data, 
 	return true;
 }
 
-// Get the size and type of value
-bool MsRegGetValueTypeAndSize(UINT root, char *keyname, char *valuename, UINT *type, UINT *size)
-{
-	return MsRegGetValueTypeAndSizeEx(root, keyname, valuename, type, size, false);
-}
-bool MsRegGetValueTypeAndSizeEx(UINT root, char *keyname, char *valuename, UINT *type, UINT *size, bool force32bit)
-{
-	return MsRegGetValueTypeAndSizeEx2(root, keyname, valuename, type, size, force32bit, false);
-}
-bool MsRegGetValueTypeAndSizeEx2(UINT root, char *keyname, char *valuename, UINT *type, UINT *size, bool force32bit, bool force64bit)
-{
-	HKEY h;
-	UINT ret;
-	// Validate arguments
-	if (keyname == NULL)
-	{
-		return false;
-	}
-	if (type != NULL)
-	{
-		*type = 0;
-	}
-	if (size != NULL)
-	{
-		*size = 0;
-	}
-
-	// Open the key
-	if (RegOpenKeyEx(MsGetRootKeyFromInt(root), keyname, 0, KEY_READ | MsRegAccessMaskFor64BitEx(force32bit, force64bit), &h) != ERROR_SUCCESS)
-	{
-		return false;
-	}
-
-	// Open up the value
-	ret = RegQueryValueEx(h, valuename, 0, type, NULL, size);
-
-	if (ret == ERROR_SUCCESS || ret == ERROR_MORE_DATA)
-	{
-		RegCloseKey(h);
-		return true;
-	}
-
-	RegCloseKey(h);
-
-	return false;
-}
-bool MsRegGetValueTypeAndSizeW(UINT root, char *keyname, char *valuename, UINT *type, UINT *size)
-{
-	return MsRegGetValueTypeAndSizeExW(root, keyname, valuename, type, size, false);
-}
-bool MsRegGetValueTypeAndSizeExW(UINT root, char *keyname, char *valuename, UINT *type, UINT *size, bool force32bit)
-{
-	return MsRegGetValueTypeAndSizeEx2W(root, keyname, valuename, type, size, force32bit, false);
-}
-bool MsRegGetValueTypeAndSizeEx2W(UINT root, char *keyname, char *valuename, UINT *type, UINT *size, bool force32bit, bool force64bit)
-{
-	HKEY h;
-	UINT ret;
-	wchar_t *valuename_w;
-	// Validate arguments
-	if (keyname == NULL)
-	{
-		return false;
-	}
-	if (type != NULL)
-	{
-		*type = 0;
-	}
-	if (size != NULL)
-	{
-		*size = 0;
-	}
-	if (IsNt() == false)
-	{
-		UINT type_a = 0;
-		UINT size_a = 0;
-
-		bool ret = MsRegGetValueTypeAndSizeEx2(root, keyname, valuename, &type_a, &size_a, force32bit, force64bit);
-
-		if (type_a == REG_SZ || type_a == REG_MULTI_SZ || type_a == REG_EXPAND_SZ)
-		{
-			size_a = size_a * sizeof(wchar_t);
-		}
-
-		if (type != NULL)
-		{
-			*type = type_a;
-		}
-
-		if (size != NULL)
-		{
-			*size = size_a;
-		}
-
-		return ret;
-	}
-
-	// Open the key
-	if (RegOpenKeyEx(MsGetRootKeyFromInt(root), keyname, 0, KEY_READ | MsRegAccessMaskFor64BitEx(force32bit, force64bit), &h) != ERROR_SUCCESS)
-	{
-		return false;
-	}
-
-	valuename_w = CopyStrToUni(valuename);
-
-	// Open up the value
-	ret = RegQueryValueExW(h, valuename_w, 0, type, NULL, size);
-
-	Free(valuename_w);
-
-	if (ret == ERROR_SUCCESS || ret == ERROR_MORE_DATA)
-	{
-		RegCloseKey(h);
-		return true;
-	}
-
-	RegCloseKey(h);
-
-	return false;
-}
-
 // Confirm that the specified value exists on the registry
 bool MsRegIsValue(UINT root, char *keyname, char *valuename)
 {
@@ -13538,7 +9695,7 @@ bool MsRegIsValueEx(UINT root, char *keyname, char *valuename, bool force32bit)
 bool MsRegIsValueEx2(UINT root, char *keyname, char *valuename, bool force32bit, bool force64bit)
 {
 	HKEY h;
-	UINT type, size;
+	DWORD type, size;
 	UINT ret;
 	// Validate arguments
 	if (keyname == NULL)
@@ -13568,14 +9725,6 @@ bool MsRegIsValueEx2(UINT root, char *keyname, char *valuename, bool force32bit,
 }
 
 // Create a key in the registry
-bool MsRegNewKey(UINT root, char *keyname)
-{
-	return MsRegNewKeyEx(root, keyname, false);
-}
-bool MsRegNewKeyEx(UINT root, char *keyname, bool force32bit)
-{
-	return MsRegNewKeyEx2(root, keyname, force32bit, false);
-}
 bool MsRegNewKeyEx2(UINT root, char *keyname, bool force32bit, bool force64bit)
 {
 	HKEY h;
@@ -13970,68 +10119,29 @@ void MsGetSpecialDirs()
 		ms->ProgramFilesDirX64W = CopyUniStr(ms->ProgramFilesDirW);
 	}
 
-	if (MsIsNt())
-	{
-		// Common start menu
-		ms->CommonStartMenuDir = MsGetSpecialDir(CSIDL_COMMON_STARTMENU);
-		ms->CommonStartMenuDirW = MsGetSpecialDirW(CSIDL_COMMON_STARTMENU);
+	// Common start menu
+	ms->CommonStartMenuDir = MsGetSpecialDir(CSIDL_COMMON_STARTMENU);
+	ms->CommonStartMenuDirW = MsGetSpecialDirW(CSIDL_COMMON_STARTMENU);
 
-		// Common program
-		ms->CommonProgramsDir = MsGetSpecialDir(CSIDL_COMMON_PROGRAMS);
-		ms->CommonProgramsDirW = MsGetSpecialDirW(CSIDL_COMMON_PROGRAMS);
+	// Common program
+	ms->CommonProgramsDir = MsGetSpecialDir(CSIDL_COMMON_PROGRAMS);
+	ms->CommonProgramsDirW = MsGetSpecialDirW(CSIDL_COMMON_PROGRAMS);
 
-		// Common startup
-		ms->CommonStartupDir = MsGetSpecialDir(CSIDL_COMMON_STARTUP);
-		ms->CommonStartupDirW = MsGetSpecialDirW(CSIDL_COMMON_STARTUP);
+	// Common startup
+	ms->CommonStartupDir = MsGetSpecialDir(CSIDL_COMMON_STARTUP);
+	ms->CommonStartupDirW = MsGetSpecialDirW(CSIDL_COMMON_STARTUP);
 
-		// Common application data
-		ms->CommonAppDataDir = MsGetSpecialDir(CSIDL_COMMON_APPDATA);
-		ms->CommonAppDataDirW = MsGetSpecialDirW(CSIDL_COMMON_APPDATA);
+	// Common application data
+	ms->CommonAppDataDir = MsGetSpecialDir(CSIDL_COMMON_APPDATA);
+	ms->CommonAppDataDirW = MsGetSpecialDirW(CSIDL_COMMON_APPDATA);
 
-		// Common desktop
-		ms->CommonDesktopDir = MsGetSpecialDir(CSIDL_COMMON_DESKTOPDIRECTORY);
-		ms->CommonDesktopDirW = MsGetSpecialDirW(CSIDL_COMMON_DESKTOPDIRECTORY);
+	// Common desktop
+	ms->CommonDesktopDir = MsGetSpecialDir(CSIDL_COMMON_DESKTOPDIRECTORY);
+	ms->CommonDesktopDirW = MsGetSpecialDirW(CSIDL_COMMON_DESKTOPDIRECTORY);
 
-		// Local Settings
-		ms->LocalAppDataDir = MsGetSpecialDir(CSIDL_LOCAL_APPDATA);
-		ms->LocalAppDataDirW = MsGetSpecialDirW(CSIDL_LOCAL_APPDATA);
-	}
-	else
-	{
-		// Start menu of the individual
-		ms->PersonalStartMenuDir = MsGetSpecialDir(CSIDL_STARTMENU);
-		ms->CommonStartMenuDir = CopyStr(ms->PersonalStartMenuDir);
-		ms->PersonalStartMenuDirW = MsGetSpecialDirW(CSIDL_STARTMENU);
-		ms->CommonStartMenuDirW = CopyUniStr(ms->PersonalStartMenuDirW);
-
-		// Program of the individual
-		ms->PersonalProgramsDir = MsGetSpecialDir(CSIDL_PROGRAMS);
-		ms->CommonProgramsDir = CopyStr(ms->PersonalProgramsDir);
-		ms->PersonalProgramsDirW = MsGetSpecialDirW(CSIDL_PROGRAMS);
-		ms->CommonProgramsDirW = CopyUniStr(ms->PersonalProgramsDirW);
-
-		// Start-up of the individual
-		ms->PersonalStartupDir = MsGetSpecialDir(CSIDL_STARTUP);
-		ms->CommonStartupDir = CopyStr(ms->PersonalStartupDir);
-		ms->PersonalStartupDirW = MsGetSpecialDirW(CSIDL_STARTUP);
-		ms->CommonStartupDirW = CopyUniStr(ms->PersonalStartupDirW);
-
-		// Application data of the individual
-		ms->PersonalAppDataDir = MsGetSpecialDir(CSIDL_APPDATA);
-		ms->CommonAppDataDir = CopyStr(ms->PersonalAppDataDir);
-		ms->PersonalAppDataDirW = MsGetSpecialDirW(CSIDL_APPDATA);
-		ms->CommonAppDataDirW = CopyUniStr(ms->PersonalAppDataDirW);
-
-		// Desktops of the individual
-		ms->PersonalDesktopDir = MsGetSpecialDir(CSIDL_DESKTOP);
-		ms->CommonDesktopDir = CopyStr(ms->PersonalDesktopDir);
-		ms->PersonalDesktopDirW = MsGetSpecialDirW(CSIDL_DESKTOP);
-		ms->CommonDesktopDirW = CopyUniStr(ms->PersonalDesktopDirW);
-
-		// Local Settings
-		ms->LocalAppDataDir = CopyStr(ms->PersonalAppDataDir);
-		ms->LocalAppDataDirW = CopyUniStr(ms->PersonalAppDataDirW);
-	}
+	// Local Settings
+	ms->LocalAppDataDir = MsGetSpecialDir(CSIDL_LOCAL_APPDATA);
+	ms->LocalAppDataDirW = MsGetSpecialDirW(CSIDL_LOCAL_APPDATA);
 }
 
 // Check whether the current user is a Administrators
@@ -14045,7 +10155,7 @@ bool MsCheckIsAdmin()
 	DWORD size;
 	char name[MAX_SIZE];
 
-	HashSha1(exe_hash, MsGetExeFileNameW(), UniStrLen(MsGetExeFileNameW()));
+	Sha1(exe_hash, MsGetExeFileNameW(), UniStrLen(MsGetExeFileNameW()));
 
 	Format(name, sizeof(name), name_tag, *((UINT *)exe_hash));
 
@@ -14080,12 +10190,16 @@ void MsInit()
 	wchar_t *str_unicode;
 	OSVERSIONINFO os;
 	char tmp[MAX_SIZE];
-	UINT size;
+	DWORD size;
 	if (ms != NULL)
 	{
 		// Already initialized
 		return;
 	}
+
+	suspend_handler_singleton = NewCounter();
+	vlan_card_counter = NewCounter();
+	vlan_card_should_stop_flag = false;
 
 	ms = ZeroMalloc(sizeof(MS));
 
@@ -14112,28 +10226,12 @@ void MsInit()
 	os.dwOSVersionInfoSize = sizeof(os);
 	GetVersionEx(&os);
 
-	if (os.dwPlatformId == VER_PLATFORM_WIN32_NT)
-	{
-		// NT series
-		ms->IsNt = true;
 
-		ms->nt = MsLoadNtApiFunctions();
+	ms->IsAdmin = MsCheckIsAdmin();
 
-		if (ms->nt == NULL)
-		{
-			ms->IsNt = false;
-			ms->IsAdmin = true;
-		}
-		else
-		{
-			// Whether I am an Administrators
-			ms->IsAdmin = MsCheckIsAdmin();
-		}
-	}
-	else
+	if (GetProcAddress(ms->hKernel32, "wine_get_unix_file_name") != NULL)
 	{
-		// In 9x system: Impersonate a Administrators always
-		ms->IsAdmin = true;
+		ms->IsWine = true;
 	}
 
 	// Get information about the current process
@@ -14175,36 +10273,24 @@ void MsInit()
 	ms->UserName = CopyStr(tmp);
 
 	// Get the user name (Unicode)
-	if (IsNt())
-	{
-		wchar_t tmp_w[MAX_PATH];
+	wchar_t tmp_w[MAX_PATH];
 
-		size = sizeof(tmp_w);
+	size = sizeof(tmp_w);
 
-		GetUserNameW(tmp_w, &size);
-		ms->UserNameW = CopyUniStr(tmp_w);
-	}
-	else
-	{
-		ms->UserNameW = CopyStrToUni(ms->UserName);
-	}
+	GetUserNameW(tmp_w, &size);
+	ms->UserNameW = CopyUniStr(tmp_w);
 
 	// Get the full user name
-	if (ms->nt != NULL && ms->nt->GetUserNameExA != NULL)
+	size = sizeof(tmp);
+	if (GetUserNameExA(NameSamCompatible, tmp, &size))
 	{
-		wchar_t tmp_w[MAX_PATH];
+		ms->UserNameEx = CopyStr(tmp);
+	}
 
-		size = sizeof(tmp);
-		if (ms->nt->GetUserNameExA(NameSamCompatible, tmp, &size))
-		{
-			ms->UserNameEx = CopyStr(tmp);
-		}
-
-		size = sizeof(tmp_w);
-		if (ms->nt->GetUserNameExW(NameSamCompatible, tmp_w, &size))
-		{
-			ms->UserNameExW = CopyUniStr(tmp_w);
-		}
+	size = sizeof(tmp_w);
+	if (GetUserNameExW(NameSamCompatible, tmp_w, &size))
+	{
+		ms->UserNameExW = CopyUniStr(tmp_w);
 	}
 
 	if (ms->UserNameEx == NULL)
@@ -14235,58 +10321,41 @@ void MsInit()
 	}
 
 	MsSetEnableMinidump(true);
-
-	if (MsIsNt())
-	{
-		if (ms->nt->MiniDumpWriteDump != NULL)
-		{
-			SetUnhandledExceptionFilter(MsExceptionHandler);
-		}
-	}
+	SetUnhandledExceptionFilter(MsExceptionHandler);
 
 	// Open a LSA handle
 	hLsa = NULL;
 	lsa_package_id = 0;
-	if (MsIsNt())
+
+	MsEnablePrivilege(SE_TCB_NAME, true);
+
+	HANDLE h = NULL;
+	NTSTATUS ret = LsaConnectUntrusted(&h);
+
+	if (ret == 0)
 	{
-		MsEnablePrivilege(SE_TCB_NAME, true);
+		LSA_STRING pkg_name;
+		ULONG ul = 0;
 
-		if (ms->nt->AllocateLocallyUniqueId != NULL &&
-			ms->nt->LsaConnectUntrusted != NULL &&
-			ms->nt->LsaLookupAuthenticationPackage != NULL &&
-			ms->nt->LsaLogonUser != NULL &&
-			ms->nt->LsaDeregisterLogonProcess != NULL &&
-			ms->nt->LsaFreeReturnBuffer != NULL)
+		Zero(&pkg_name, sizeof(pkg_name));
+		pkg_name.Buffer = MSV1_0_PACKAGE_NAME;
+		pkg_name.Length = pkg_name.MaximumLength = StrLen(MSV1_0_PACKAGE_NAME);
+
+		ret = LsaLookupAuthenticationPackage(h, &pkg_name, &ul);
+
+		if (ret == 0)
 		{
-			HANDLE h = NULL;
-			NTSTATUS ret = ms->nt->LsaConnectUntrusted(&h);
+			Zero(&lsa_token_source, sizeof(lsa_token_source));
 
-			if (ret == 0)
-			{
-				LSA_STRING pkg_name;
-				ULONG ul = 0;
+			AllocateLocallyUniqueId(&lsa_token_source.SourceIdentifier);
+			Copy(lsa_token_source.SourceName, "SE-VPN  ", 8);
 
-				Zero(&pkg_name, sizeof(pkg_name));
-				pkg_name.Buffer = MSV1_0_PACKAGE_NAME;
-				pkg_name.Length = pkg_name.MaximumLength = StrLen(MSV1_0_PACKAGE_NAME);
-
-				ret = ms->nt->LsaLookupAuthenticationPackage(h, &pkg_name, &ul);
-
-				if (ret == 0)
-				{
-					Zero(&lsa_token_source, sizeof(lsa_token_source));
-
-					ms->nt->AllocateLocallyUniqueId(&lsa_token_source.SourceIdentifier);
-					Copy(lsa_token_source.SourceName, "SE-VPN  ", 8);
-
-					lsa_package_id = ul;
-					hLsa = h;
-				}
-				else
-				{
-					ms->nt->LsaDeregisterLogonProcess(h);
-				}
-			}
+			lsa_package_id = ul;
+			hLsa = h;
+		}
+		else
+		{
+			LsaDeregisterLogonProcess(h);
 		}
 	}
 
@@ -14371,7 +10440,7 @@ bool MsGetMsiInstalledDir(char *component_code, wchar_t *dir, UINT dir_size)
 	wchar_t *component_code_w;
 	bool ret = false;
 	wchar_t tmp[MAX_SIZE];
-	UINT sz = sizeof(tmp) / sizeof(wchar_t);
+	DWORD sz = sizeof(tmp) / sizeof(wchar_t);
 	// Validate arguments
 	if (component_code == NULL || dir == NULL)
 	{
@@ -14398,6 +10467,12 @@ bool MsGetMsiInstalledDir(char *component_code, wchar_t *dir, UINT dir_size)
 	Free(component_code_w);
 
 	return ret;
+}
+
+// Determine whether minidump is enabled
+bool MsIsMinidumpEnabled()
+{
+	return ms->MiniDumpEnabled;
 }
 
 // Determine whether to create a minidump
@@ -14449,7 +10524,7 @@ void MsWriteMinidump(wchar_t *filename, void *ex)
 		NULL);
 	if (h != INVALID_HANDLE_VALUE)
 	{
-		ms->nt->MiniDumpWriteDump(ms->hCurrentProcess, ms->CurrentProcessId,
+		MiniDumpWriteDump(ms->hCurrentProcess, ms->CurrentProcessId,
 			h,
 			MiniDumpNormal | MiniDumpWithFullMemory | MiniDumpWithDataSegs |
 			MiniDumpWithHandleData
@@ -14484,7 +10559,7 @@ void MsFree()
 	// Release the LSA
 	if (hLsa != NULL)
 	{
-		ms->nt->LsaDeregisterLogonProcess(hLsa);
+		LsaDeregisterLogonProcess(hLsa);
 
 		hLsa = NULL;
 	}
@@ -14494,12 +10569,6 @@ void MsFree()
 
 	// Release of the temporary directory
 	MsFreeTempDir();
-
-	if (ms->IsNt)
-	{
-		// Release of NT series API
-		MsFreeNtApiFunctions(ms->nt);
-	}
 
 	// Memory release
 	// ANSI
@@ -14560,17 +10629,16 @@ void MsFree()
 	// Delete the lock
 	DeleteLock(vlan_lock);
 	vlan_lock = NULL;
+
+	DeleteCounter(suspend_handler_singleton);
+	suspend_handler_singleton = NULL;
+
+	DeleteCounter(vlan_card_counter);
+	vlan_card_counter = NULL;
+	vlan_card_should_stop_flag = false;
 }
 
 // Directory acquisition related
-char *MsGetCommonAppDataDir()
-{
-	return ms->CommonAppDataDir;
-}
-char *MsGetLocalAppDataDir()
-{
-	return ms->LocalAppDataDir;
-}
 char *MsGetWindowsDir()
 {
 	return ms->WindowsDir;
@@ -14587,101 +10655,17 @@ char *MsGetTempDir()
 {
 	return ms->TempDir;
 }
-char *MsGetWindowsDrive()
-{
-	return ms->WindowsDrive;
-}
 char *MsGetProgramFilesDir()
 {
 	return ms->ProgramFilesDir;
-}
-char *MsGetProgramFilesDirX86()
-{
-	return ms->ProgramFilesDirX86;
-}
-char *MsGetProgramFilesDirX64()
-{
-	return ms->ProgramFilesDirX64;
-}
-char *MsGetCommonStartMenuDir()
-{
-	return ms->CommonStartMenuDir;
-}
-char *MsGetCommonProgramsDir()
-{
-	return ms->CommonProgramsDir;
 }
 char *MsGetCommonStartupDir()
 {
 	return ms->CommonStartupDir;
 }
-char *MsGetCommonDesktopDir()
-{
-	return ms->CommonDesktopDir;
-}
-char *MsGetPersonalStartMenuDir()
-{
-	if (ms->PersonalStartMenuDir == NULL)
-	{
-		ms->PersonalStartMenuDir = MsGetSpecialDir(CSIDL_STARTMENU);
-	}
-	return ms->PersonalStartMenuDir;
-}
-char *MsGetPersonalProgramsDir()
-{
-	if (ms->PersonalProgramsDir == NULL)
-	{
-		ms->PersonalProgramsDir = MsGetSpecialDir(CSIDL_PROGRAMS);
-	}
-	return ms->PersonalProgramsDir;
-}
-char *MsGetPersonalStartupDir()
-{
-	if (ms->PersonalStartupDir == NULL)
-	{
-		ms->PersonalStartupDir = MsGetSpecialDir(CSIDL_STARTUP);
-	}
-	return ms->PersonalStartupDir;
-}
-char *MsGetPersonalAppDataDir()
-{
-	if (ms->PersonalAppDataDir == NULL)
-	{
-		ms->PersonalAppDataDir = MsGetSpecialDir(CSIDL_APPDATA);
-	}
-	return ms->PersonalAppDataDir;
-}
-char *MsGetPersonalDesktopDir()
-{
-	if (ms->PersonalDesktopDir == NULL)
-	{
-		ms->PersonalDesktopDir = MsGetSpecialDir(CSIDL_DESKTOP);
-	}
-	return ms->PersonalDesktopDir;
-}
-char *MsGetMyDocumentsDir()
-{
-	if (ms->MyDocumentsDir == NULL)
-	{
-		ms->MyDocumentsDir = MsGetSpecialDir(CSIDL_PERSONAL);
-	}
-	return ms->MyDocumentsDir;
-}
 char *MsGetMyTempDir()
 {
 	return ms->MyTempDir;
-}
-char *MsGetUserName()
-{
-	return ms->UserName;
-}
-char *MsGetUserNameEx()
-{
-	return ms->UserNameEx;
-}
-char *MsGetWinTempDir()
-{
-	return ms->WinTempDir;
 }
 
 wchar_t *MsGetExeFileNameW()
@@ -14692,10 +10676,6 @@ wchar_t *MsGetExeFileDirW()
 {
 	return ms->ExeFileDirW;
 }
-wchar_t *MsGetWindowDirW()
-{
-	return ms->WindowsDirW;
-}
 wchar_t *MsGetSystem32DirW()
 {
 	return ms->System32DirW;
@@ -14703,14 +10683,6 @@ wchar_t *MsGetSystem32DirW()
 wchar_t *MsGetTempDirW()
 {
 	return ms->TempDirW;
-}
-wchar_t *MsGetWindowsDriveW()
-{
-	return ms->WindowsDriveW;
-}
-wchar_t *MsGetProgramFilesDirW()
-{
-	return ms->ProgramFilesDirW;
 }
 wchar_t *MsGetCommonStartMenuDirW()
 {
@@ -14720,10 +10692,6 @@ wchar_t *MsGetCommonProgramsDirW()
 {
 	return ms->CommonProgramsDirW;
 }
-wchar_t *MsGetProgramFilesDirX86W()
-{
-	return ms->ProgramFilesDirX86W;
-}
 wchar_t *MsGetProgramFilesDirX64W()
 {
 	return ms->ProgramFilesDirX64W;
@@ -14731,10 +10699,6 @@ wchar_t *MsGetProgramFilesDirX64W()
 wchar_t *MsGetCommonStartupDirW()
 {
 	return ms->CommonStartupDirW;
-}
-wchar_t *MsGetCommonAppDataDirW()
-{
-	return ms->CommonAppDataDirW;
 }
 wchar_t *MsGetCommonDesktopDirW()
 {
@@ -14785,19 +10749,6 @@ wchar_t *MsGetPersonalDesktopDirW()
 
 	return ms->PersonalDesktopDirW;
 }
-wchar_t *MsGetMyDocumentsDirW()
-{
-	if (ms->MyDocumentsDirW == NULL)
-	{
-		ms->MyDocumentsDirW = MsGetSpecialDirW(CSIDL_PERSONAL);
-	}
-
-	return ms->MyDocumentsDirW;
-}
-wchar_t *MsGetLocalAppDataDirW()
-{
-	return ms->LocalAppDataDirW;
-}
 wchar_t *MsGetMyTempDirW()
 {
 	return ms->MyTempDirW;
@@ -14806,19 +10757,6 @@ wchar_t *MsGetUserNameW()
 {
 	return ms->UserNameW;
 }
-wchar_t *MsGetUserNameExW()
-{
-	return ms->UserNameExW;
-}
-wchar_t *MsGetWinTempDirW()
-{
-	return ms->WinTempDirW;
-}
-
 
 #endif	// WIN32
 
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/

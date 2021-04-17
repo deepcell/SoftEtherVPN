@@ -1,81 +1,5 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Cedar Communication Module
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2014 Daiyuu Nobori.
-// Copyright (c) 2012-2014 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2014 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE IT IN OTHER COUNTRIES. IMPORTING THIS
-// SOFTWARE INTO OTHER COUNTRIES IS AT YOUR OWN RISK. SOME COUNTRIES
-// PROHIBIT ENCRYPTED COMMUNICATIONS. USING THIS SOFTWARE IN OTHER
-// COUNTRIES MIGHT BE RESTRICTED.
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
 
 
 // CedarType.h
@@ -83,6 +7,9 @@
 
 #ifndef	CEDARTYPE_H
 #define	CEDARTYPE_H
+
+typedef struct CEDAR CEDAR;
+typedef struct TRAFFIC TRAFFIC;
 
 
 // ==============================================================
@@ -105,6 +32,23 @@ typedef struct AUTHUSERCERT AUTHUSERCERT;
 typedef struct AUTHROOTCERT AUTHROOTCERT;
 typedef struct AUTHRADIUS AUTHRADIUS;
 typedef struct AUTHNT AUTHNT;
+
+
+// ==============================================================
+//   RADIUS
+// ==============================================================
+
+typedef struct RADIUS_LOGIN_OPTION RADIUS_LOGIN_OPTION;
+typedef struct RADIUS_PACKET RADIUS_PACKET;
+typedef struct RADIUS_AVP RADIUS_AVP;
+typedef struct EAP_CLIENT EAP_CLIENT;
+typedef struct EAP_MESSAGE EAP_MESSAGE;
+typedef struct EAP_MSCHAPV2_GENERAL EAP_MSCHAPV2_GENERAL;
+typedef struct EAP_MSCHAPV2_CHALLENGE EAP_MSCHAPV2_CHALLENGE;
+typedef struct EAP_MSCHAPV2_RESPONSE EAP_MSCHAPV2_RESPONSE;
+typedef struct EAP_MSCHAPV2_SUCCESS_SERVER EAP_MSCHAPV2_SUCCESS_SERVER;
+typedef struct EAP_MSCHAPV2_SUCCESS_CLIENT EAP_MSCHAPV2_SUCCESS_CLIENT;
+typedef struct EAP_PEAP EAP_PEAP;
 
 
 // ==============================================================
@@ -336,6 +280,7 @@ typedef struct HUB_SNAPSHOT HUB_SNAPSHOT;
 typedef struct SERVER_SNAPSHOT SERVER_SNAPSHOT;
 typedef struct SERVER_HUB_CREATE_HISTORY SERVER_HUB_CREATE_HISTORY;
 typedef struct OPENVPN_SSTP_CONFIG OPENVPN_SSTP_CONFIG;
+typedef struct WGK WGK;
 
 // ==============================================================
 //   Server Admin Tool
@@ -347,7 +292,9 @@ typedef struct RPC_SERVER_INFO RPC_SERVER_INFO;
 typedef struct RPC_SERVER_STATUS RPC_SERVER_STATUS;
 typedef struct RPC_LISTENER RPC_LISTENER;
 typedef struct RPC_LISTENER_LIST RPC_LISTENER_LIST;
+typedef struct RPC_PORTS RPC_PORTS;
 typedef struct RPC_STR RPC_STR;
+typedef struct RPC_PROTO_OPTIONS RPC_PROTO_OPTIONS;
 typedef struct RPC_SET_PASSWORD RPC_SET_PASSWORD;
 typedef struct RPC_FARM RPC_FARM;
 typedef struct RPC_FARM_HUB RPC_FARM_HUB;
@@ -356,6 +303,7 @@ typedef struct RPC_ENUM_FARM_ITEM RPC_ENUM_FARM_ITEM;
 typedef struct RPC_ENUM_FARM RPC_ENUM_FARM;
 typedef struct RPC_FARM_CONNECTION_STATUS RPC_FARM_CONNECTION_STATUS;
 typedef struct RPC_KEY_PAIR RPC_KEY_PAIR;
+typedef struct RPC_WGK RPC_WGK;
 typedef struct RPC_HUB_OPTION RPC_HUB_OPTION;
 typedef struct RPC_RADIUS RPC_RADIUS;
 typedef struct RPC_HUB RPC_HUB;
@@ -491,6 +439,8 @@ typedef struct CTC CTC;
 typedef struct CTR CTR;
 typedef struct TTC TTC;
 typedef struct TTS TTS;
+typedef struct TTS_WORKER TTS_WORKER;
+typedef struct TTC_WORKER TTC_WORKER;
 typedef struct TT_RESULT TT_RESULT;
 typedef struct TTS_SOCK TTS_SOCK;
 typedef struct TTC_SOCK TTC_SOCK;
@@ -525,6 +475,13 @@ typedef struct TRIAL_INFO TRIAL_INFO;
 
 
 // ==============================================================
+//  Proto
+// ==============================================================
+
+typedef struct PROTO_OPTION PROTO_OPTION;
+
+
+// ==============================================================
 //  IPsec
 // ==============================================================
 
@@ -554,6 +511,11 @@ typedef struct PPP_OPTION PPP_OPTION;
 typedef struct PPP_LCP PPP_LCP;
 typedef struct PPP_PACKET PPP_PACKET;
 typedef struct PPP_IPOPTION PPP_IPOPTION;
+typedef struct PPP_IPV6OPTION PPP_IPV6OPTION;
+typedef struct PPP_REQUEST_RESEND PPP_REQUEST_RESEND;
+typedef struct PPP_DELAYED_PACKET PPP_DELAYED_PACKET;
+typedef struct PPP_EAP PPP_EAP;
+typedef struct PPP_EAP_TLS_CONTEXT PPP_EAP_TLS_CONTEXT;
 
 
 // ==============================================================
@@ -631,8 +593,11 @@ typedef struct IPC IPC;
 typedef struct IPC_ARP IPC_ARP;
 typedef struct IPC_ASYNC IPC_ASYNC;
 typedef struct IPC_PARAM IPC_PARAM;
-typedef struct IPC_DHCP_RELESAE_QUEUE IPC_DHCP_RELESAE_QUEUE;
+typedef struct IPC_DHCP_RELEASE_QUEUE IPC_DHCP_RELEASE_QUEUE;
 typedef struct IPC_MSCHAP_V2_AUTHINFO IPC_MSCHAP_V2_AUTHINFO;
+typedef struct IPC_SESSION_SHARED_BUFFER_DATA IPC_SESSION_SHARED_BUFFER_DATA;
+typedef struct IPC_IPV6_ROUTER_ADVERTISEMENT IPC_IPV6_ROUTER_ADVERTISEMENT;
+typedef struct IPC_DHCPV4_AWAIT IPC_DHCPV4_AWAIT;
 
 
 // ==============================================================
@@ -701,6 +666,8 @@ typedef struct MIRROR_SERVER MIRROR_SERVER;
 // ==============================================================
 
 typedef struct NATIVE_STACK NATIVE_STACK;
+typedef struct IPTABLES_STATE IPTABLES_STATE;
+typedef struct IPTABLES_ENTRY IPTABLES_ENTRY;
 
 
 // ==============================================================
@@ -714,7 +681,3 @@ typedef struct SU_ADAPTER_LIST SU_ADAPTER_LIST;
 
 
 #endif	// CEDARTYPE_H
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/

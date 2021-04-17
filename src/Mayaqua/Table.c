@@ -1,96 +1,23 @@
-// SoftEther VPN Source Code
+// SoftEther VPN Source Code - Developer Edition Master Branch
 // Mayaqua Kernel
-// 
-// SoftEther VPN Server, Client and Bridge are free software under GPLv2.
-// 
-// Copyright (c) 2012-2014 Daiyuu Nobori.
-// Copyright (c) 2012-2014 SoftEther VPN Project, University of Tsukuba, Japan.
-// Copyright (c) 2012-2014 SoftEther Corporation.
-// 
-// All Rights Reserved.
-// 
-// http://www.softether.org/
-// 
-// Author: Daiyuu Nobori
-// Comments: Tetsuo Sugiyama, Ph.D.
-// 
-// 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 2 as published by the Free Software Foundation.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License version 2
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-// 
-// THE LICENSE AGREEMENT IS ATTACHED ON THE SOURCE-CODE PACKAGE
-// AS "LICENSE.TXT" FILE. READ THE TEXT FILE IN ADVANCE TO USE THE SOFTWARE.
-// 
-// 
-// THIS SOFTWARE IS DEVELOPED IN JAPAN, AND DISTRIBUTED FROM JAPAN,
-// UNDER JAPANESE LAWS. YOU MUST AGREE IN ADVANCE TO USE, COPY, MODIFY,
-// MERGE, PUBLISH, DISTRIBUTE, SUBLICENSE, AND/OR SELL COPIES OF THIS
-// SOFTWARE, THAT ANY JURIDICAL DISPUTES WHICH ARE CONCERNED TO THIS
-// SOFTWARE OR ITS CONTENTS, AGAINST US (SOFTETHER PROJECT, SOFTETHER
-// CORPORATION, DAIYUU NOBORI OR OTHER SUPPLIERS), OR ANY JURIDICAL
-// DISPUTES AGAINST US WHICH ARE CAUSED BY ANY KIND OF USING, COPYING,
-// MODIFYING, MERGING, PUBLISHING, DISTRIBUTING, SUBLICENSING, AND/OR
-// SELLING COPIES OF THIS SOFTWARE SHALL BE REGARDED AS BE CONSTRUED AND
-// CONTROLLED BY JAPANESE LAWS, AND YOU MUST FURTHER CONSENT TO
-// EXCLUSIVE JURISDICTION AND VENUE IN THE COURTS SITTING IN TOKYO,
-// JAPAN. YOU MUST WAIVE ALL DEFENSES OF LACK OF PERSONAL JURISDICTION
-// AND FORUM NON CONVENIENS. PROCESS MAY BE SERVED ON EITHER PARTY IN
-// THE MANNER AUTHORIZED BY APPLICABLE LAW OR COURT RULE.
-// 
-// USE ONLY IN JAPAN. DO NOT USE IT IN OTHER COUNTRIES. IMPORTING THIS
-// SOFTWARE INTO OTHER COUNTRIES IS AT YOUR OWN RISK. SOME COUNTRIES
-// PROHIBIT ENCRYPTED COMMUNICATIONS. USING THIS SOFTWARE IN OTHER
-// COUNTRIES MIGHT BE RESTRICTED.
-// 
-// 
-// DEAR SECURITY EXPERTS
-// ---------------------
-// 
-// If you find a bug or a security vulnerability please kindly inform us
-// about the problem immediately so that we can fix the security problem
-// to protect a lot of users around the world as soon as possible.
-// 
-// Our e-mail address for security reports is:
-// softether-vpn-security [at] softether.org
-// 
-// Please note that the above e-mail address is not a technical support
-// inquiry address. If you need technical assistance, please visit
-// http://www.softether.org/ and ask your question on the users forum.
-// 
-// Thank you for your cooperation.
 
 
 // Table.c
 // Read and management routines for string table
 
-#include <GlobalConst.h>
+#include "Table.h"
 
-#include <stdio.h>
+#include "Cfg.h"
+#include "FileIO.h"
+#include "Internat.h"
+#include "Mayaqua.h"
+#include "Memory.h"
+#include "Microsoft.h"
+#include "Network.h"
+#include "Str.h"
+#include "Tick64.h"
+
 #include <stdlib.h>
-#include <string.h>
-#include <wchar.h>
-#include <stdarg.h>
-#include <time.h>
-#include <errno.h>
-#include <Mayaqua/Mayaqua.h>
 
 // List of TABLE
 static LIST *TableList = NULL;
@@ -263,7 +190,7 @@ bool SaveLangConfig(wchar_t *filename, char *str)
 		FreeLangList(o);
 	}
 
-	ret = DumpBufW(b, filename);
+	ret = DumpBufWIfNecessary(b, filename);
 
 	FreeBuf(b);
 
@@ -532,6 +459,13 @@ LIST *LoadLangList()
 	char *filename = LANGLIST_FILENAME;
 	BUF *b;
 
+#ifdef	OS_WIN32
+	if (MsIsWine())
+	{
+		filename = LANGLIST_FILENAME_WINE;
+	}
+#endif	// OS_WIN32
+
 	b = ReadDump(filename);
 	if (b == NULL)
 	{
@@ -698,22 +632,6 @@ char *GetTableStr(char *name)
 	{
 		return "";
 	}
-
-#ifdef	OS_WIN32
-	if (StrCmpi(name, "DEFAULT_FONT") == 0)
-	{
-		if (_II("LANG") == 2)
-		{
-			UINT os_type = GetOsType();
-			if (OS_IS_WINDOWS_9X(os_type) ||
-				GET_KETA(os_type, 100) <= 4)
-			{
-				// Use the SimSun font in Windows 9x, Windows NT 4.0, Windows 2000, Windows XP, and Windows Server 2003
-				return "SimSun";
-			}
-		}
-	}
-#endif	// OS_WIN32
 
 	// Search
 	t = FindTable(name);
@@ -908,6 +826,8 @@ TABLE *ParseTableLine(char *line, char *prefix, UINT prefix_size, LIST *replace_
 			UniReplaceStrEx(tmp, tmp_size, tmp, (wchar_t *)r->name, r->unistr, false);
 		}
 
+		Free(unistr);
+
 		unistr = CopyUniStr(tmp);
 
 		Free(tmp);
@@ -1032,8 +952,6 @@ void FreeTable()
 		return;
 	}
 
-	TrackingDisable();
-
 	num = LIST_NUM(TableList);
 	tables = ToArray(TableList);
 	for (i = 0;i < num;i++)
@@ -1049,8 +967,6 @@ void FreeTable()
 	Free(tables);
 
 	Zero(old_table_name, sizeof(old_table_name));
-
-	TrackingEnable();
 }
 
 // Read a string table from the buffer
@@ -1168,7 +1084,7 @@ void GenerateUnicodeCacheFileName(wchar_t *name, UINT size, wchar_t *strfilename
 	UniStrCat(hashtemp, sizeof(hashtemp), exe);
 	UniStrLower(hashtemp);
 
-	Hash(hash, hashtemp, UniStrLen(hashtemp) * sizeof(wchar_t), true);
+	Sha0(hash, hashtemp, UniStrLen(hashtemp) * sizeof(wchar_t));
 	BinToStrW(hashstr, sizeof(hashstr), hash, 4);
 	UniFormat(tmp, sizeof(tmp), UNICODE_CACHE_FILE, hashstr);
 	UniStrLower(tmp);
@@ -1229,7 +1145,7 @@ void SaveUnicodeCache(wchar_t *strfilename, UINT strfilesize, UCHAR *hash)
 		WriteBuf(b, t->unistr, UniStrLen(t->unistr) * sizeof(wchar_t));
 	}
 
-	Hash(binhash, b->Buf, b->Size, false);
+	Md5(binhash, b->Buf, b->Size);
 	WriteBuf(b, binhash, MD5_SIZE);
 
 	GenerateUnicodeCacheFileName(name, sizeof(name), strfilename, strfilesize, hash);
@@ -1279,7 +1195,7 @@ bool LoadUnicodeCache(wchar_t *strfilename, UINT strfilesize, UCHAR *hash)
 	SeekBuf(b, 0, 0);
 	FileClose(io);
 
-	Hash(binhash, b->Buf, b->Size >= MD5_SIZE ? (b->Size - MD5_SIZE) : 0, false);
+	Md5(binhash, b->Buf, b->Size >= MD5_SIZE ? (b->Size - MD5_SIZE) : 0);
 	Copy(binhash_2, ((UCHAR *)b->Buf) + (b->Size >= MD5_SIZE ? (b->Size - MD5_SIZE) : 0), MD5_SIZE);
 	if (Cmp(binhash, binhash_2, MD5_SIZE) != 0)
 	{
@@ -1382,7 +1298,7 @@ bool LoadTableMain(wchar_t *filename)
 		return false;
 	}
 
-	Hash(hash, b->Buf, b->Size, false);
+	Md5(hash, b->Buf, b->Size);
 
 	if (LoadUnicodeCache(filename, b->Size, hash) == false)
 	{
@@ -1394,16 +1310,16 @@ bool LoadTableMain(wchar_t *filename)
 
 		SaveUnicodeCache(filename, b->Size, hash);
 
-		Debug("Unicode Source: strtable.stb\n");
+		//Debug("Unicode Source: strtable.stb\n");
 	}
 	else
 	{
-		Debug("Unicode Source: unicode_cache\n");
+		//Debug("Unicode Source: unicode_cache\n");
 	}
 
 	FreeBuf(b);
 
-	SetLocale(_UU("DEFAULE_LOCALE"));
+	SetLocale(_UU("DEFAULT_LOCALE"));
 
 	UniStrCpy(old_table_name, sizeof(old_table_name), filename);
 
@@ -1419,7 +1335,7 @@ bool LoadTableMain(wchar_t *filename)
 		return false;
 	}
 
-	Debug("Unicode File Read Cost: %u (%u Lines)\n", (UINT)(t2 - t1), LIST_NUM(TableList));
+	//Debug("Unicode File Read Cost: %u (%u Lines)\n", (UINT)(t2 - t1), LIST_NUM(TableList));
 
 	return true;
 }
@@ -1440,8 +1356,6 @@ bool LoadTableW(wchar_t *filename)
 
 	Zero(replace_name, sizeof(replace_name));
 
-	TrackingDisable();
-
 	b = ReadDump("@table_name.txt");
 	if (b != NULL)
 	{
@@ -1461,13 +1375,5 @@ bool LoadTableW(wchar_t *filename)
 
 	ret = LoadTableMain(filename);
 
-	TrackingEnable();
-
 	return ret;
 }
-
-
-
-// Developed by SoftEther VPN Project at University of Tsukuba in Japan.
-// Department of Computer Science has dozens of overly-enthusiastic geeks.
-// Join us: http://www.tsukuba.ac.jp/english/admission/
